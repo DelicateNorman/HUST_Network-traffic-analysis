@@ -1,216 +1,142 @@
 #!/usr/bin/env python3
 """
-gui.py - FR-8: Python Tkinter GUI for the Network Traffic Analyzer.
-Calls ./app subcommands via subprocess and displays results.
-Usage: python3 py/gui.py
+gui.py - FR-8: Streamlit GUI for the Network Traffic Analyzer.
+Usage: streamlit run py/gui.py
+
+Calls ./app subcommands via subprocess and displays results in-browser.
 """
 
-import tkinter as tk
-from tkinter import ttk, filedialog, scrolledtext, messagebox
+import streamlit as st
 import subprocess
-import threading
 import os
 import sys
 
-APP_BINARY = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app')
-DEFAULT_CSV = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                           'data', 'network_data.csv')
+# Absolute path to the ./app binary (relative to this script's parent dir)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+APP_BIN  = os.path.join(BASE_DIR, 'app')
+DEF_CSV  = os.path.join(BASE_DIR, 'data', 'network_data.csv')
+OUT_DIR  = os.path.join(BASE_DIR, 'out')
 
-class App(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Network Traffic Analyzer")
-        self.geometry("1000x700")
-        self.configure(bg="#1a1a2e")
-        self.resizable(True, True)
+def run_cmd(args: list[str], csv_path: str) -> str:
+    """Run ./app with given args and return stdout+stderr as string."""
+    cmd = [APP_BIN, '--input', csv_path] + args
+    st.code(' '.join(cmd), language='bash')
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        return result.stdout + (('\n[STDERR]\n' + result.stderr) if result.stderr else '')
+    except FileNotFoundError:
+        return f"[ERROR] Binary not found: {APP_BIN}\nPlease run `make` first."
+    except subprocess.TimeoutExpired:
+        return "[ERROR] Command timed out (>30s)"
 
-        self.csv_var     = tk.StringVar(value=DEFAULT_CSV)
-        self.topk_var    = tk.StringVar(value="20")
-        self.thresh_var  = tk.StringVar(value="0.8")
-        self.src_var     = tk.StringVar()
-        self.dst_var     = tk.StringVar()
-        self.metric_var  = tk.StringVar(value="both")
-        self.minleaf_var = tk.StringVar(value="20")
-        self.mode_var    = tk.StringVar(value="deny")
-        self.ip1_var     = tk.StringVar()
-        self.low_var     = tk.StringVar()
-        self.high_var    = tk.StringVar()
-        self.expip_var   = tk.StringVar()
+# ─── Page config ────────────────────────────────────────────────────────────
+st.set_page_config(
+    page_title="Network Traffic Analyzer",
+    page_icon="🌐",
+    layout="wide",
+)
 
-        self._build_ui()
+st.title("🌐 Network Traffic Analyzer")
+st.caption("Network Traffic Analyzer & Anomaly Detector — C++ CLI + Python GUI")
 
-    def _style(self):
-        s = ttk.Style()
-        s.theme_use('clam')
-        s.configure('TFrame',     background='#1a1a2e')
-        s.configure('TLabel',     background='#1a1a2e', foreground='#e0e0e0', font=('Consolas', 10))
-        s.configure('TButton',    background='#16213e', foreground='#00d4ff',
-                    font=('Consolas', 10, 'bold'), padding=6)
-        s.map('TButton',          background=[('active', '#0f3460')])
-        s.configure('TEntry',     fieldbackground='#16213e', foreground='#e0e0e0',
-                    insertcolor='white')
-        s.configure('TLabelframe',      background='#1a1a2e', foreground='#00d4ff')
-        s.configure('TLabelframe.Label', background='#1a1a2e', foreground='#00d4ff',
-                    font=('Consolas', 10, 'bold'))
+# ─── Sidebar: file selector ──────────────────────────────────────────────────
+with st.sidebar:
+    st.header("⚙️ Configuration")
+    csv_path = st.text_input("CSV Data File", value=DEF_CSV)
+    st.markdown("---")
+    st.markdown("**Quick actions:**")
+    if st.button("📊 Graph Stats"):
+        st.session_state['result'] = run_cmd(['stats'], csv_path)
+        st.session_state['cmd'] = 'stats'
 
-    def _build_ui(self):
-        self._style()
+# ─── Tabs ───────────────────────────────────────────────────────────────────
+tabs = st.tabs(["📈 Sort Traffic", "🔐 HTTPS", "↗️ One-way",
+                "🗺️ Path Find", "⭐ Star Topology", "🚨 Security Rule",
+                "📤 Export Subgraph"])
 
-        main = ttk.Frame(self)
-        main.pack(fill='both', expand=True, padx=12, pady=12)
+# Tab 0: Sort by total traffic
+with tabs[0]:
+    st.subheader("FR-3.1 Sort All Nodes by Total Traffic")
+    top_k = st.number_input("Top K", min_value=1, max_value=500, value=20, key='sort_k')
+    if st.button("🔍 Run Sort", key='btn_sort'):
+        out = run_cmd(['sort', '--top', str(top_k)], csv_path)
+        st.text(out)
 
-        # Top: file selector
-        top = ttk.LabelFrame(main, text="Data File")
-        top.pack(fill='x', pady=(0, 8))
-        ttk.Label(top, text="CSV:").pack(side='left', padx=4)
-        ttk.Entry(top, textvariable=self.csv_var, width=60).pack(side='left', padx=4)
-        ttk.Button(top, text="Browse", command=self._browse).pack(side='left', padx=4)
+# Tab 1: HTTPS
+with tabs[1]:
+    st.subheader("FR-3.2 Sort Nodes by HTTPS Traffic (TCP+Port 443)")
+    top_k2 = st.number_input("Top K", min_value=1, max_value=500, value=20, key='https_k')
+    if st.button("🔒 Run HTTPS Sort", key='btn_https'):
+        out = run_cmd(['sort-https', '--top', str(top_k2)], csv_path)
+        st.text(out)
 
-        # Middle: left panel (controls) + right panel (output)
-        mid = ttk.Frame(main)
-        mid.pack(fill='both', expand=True)
+# Tab 2: One-way
+with tabs[2]:
+    st.subheader("FR-3.3 Nodes with Outbound Ratio > Threshold")
+    col1, col2 = st.columns(2)
+    threshold = col1.number_input("Threshold", min_value=0.0, max_value=1.0, value=0.8, step=0.05)
+    top_k3 = col2.number_input("Top K", min_value=1, max_value=500, value=50, key='ow_k')
+    if st.button("↗️ Run One-way", key='btn_ow'):
+        out = run_cmd(['sort-oneway', '--threshold', str(threshold), '--top', str(top_k3)], csv_path)
+        st.text(out)
 
-        ctrl = ttk.Frame(mid)
-        ctrl.pack(side='left', fill='y', padx=(0, 8))
+# Tab 3: Path finding
+with tabs[3]:
+    st.subheader("FR-4 Path Finding: BFS (min hops) + Dijkstra (min congestion)")
+    col1, col2 = st.columns(2)
+    src_ip = col1.text_input("Source IP", value="115.156.142.194")
+    dst_ip = col2.text_input("Destination IP", value="18.182.32.116")
+    metric = st.radio("Metric", ["hop", "congestion", "both"], horizontal=True)
+    if st.button("🗺️ Find Path", key='btn_path'):
+        out = run_cmd(['path', '--src', src_ip, '--dst', dst_ip, '--metric', metric], csv_path)
+        st.text(out)
 
-        out_frame = ttk.LabelFrame(mid, text="Output")
-        out_frame.pack(side='left', fill='both', expand=True)
-        self.output = scrolledtext.ScrolledText(
-            out_frame, bg='#0d1117', fg='#00ff88', font=('Consolas', 10),
-            insertbackground='white', wrap='word')
-        self.output.pack(fill='both', expand=True, padx=4, pady=4)
+# Tab 4: Star topology
+with tabs[4]:
+    st.subheader("FR-5 Star Topology Detection")
+    min_leaves = st.number_input("Min Leaves", min_value=1, max_value=500, value=20)
+    if st.button("⭐ Detect Stars", key='btn_stars'):
+        out = run_cmd(['stars', '--min-leaves', str(min_leaves)], csv_path)
+        st.text(out)
 
-        self._build_controls(ctrl)
+# Tab 5: Security rule
+with tabs[5]:
+    st.subheader("FR-6 IP Range Security Rule")
+    col1, col2, col3 = st.columns(3)
+    ip1   = col1.text_input("Controlled IP (ip1)", value="115.156.142.194")
+    ip_lo = col2.text_input("Range Low",  value="18.182.32.100")
+    ip_hi = col3.text_input("Range High", value="18.182.32.200")
+    mode  = st.radio("Mode", ["deny", "allow"], horizontal=True)
+    if st.button("🚨 Apply Rule", key='btn_rule'):
+        out = run_cmd(['rule', 'iprange', '--mode', mode,
+                       '--ip1', ip1, '--low', ip_lo, '--high', ip_hi], csv_path)
+        st.text(out)
 
-    def _build_controls(self, parent):
-        # Stats
-        f = ttk.LabelFrame(parent, text="Graph Stats")
-        f.pack(fill='x', pady=4)
-        ttk.Button(f, text="stats", command=lambda: self._run(['stats'])).pack(fill='x', padx=4, pady=2)
+# Tab 6: Export subgraph
+with tabs[6]:
+    st.subheader("FR-9 Export Connected Subgraph")
+    exp_ip   = st.text_input("IP Address", value="115.156.142.194")
+    out_csv  = os.path.join(OUT_DIR, 'subgraph_edges.csv')
+    out_html = os.path.join(OUT_DIR, 'subgraph.html')
+    if st.button("📤 Export Subgraph", key='btn_exp'):
+        out = run_cmd(['export-subgraph', '--ip', exp_ip, '--out', out_csv], csv_path)
+        st.text(out)
 
-        # Sort
-        f = ttk.LabelFrame(parent, text="Sort (Top N)")
-        f.pack(fill='x', pady=4)
-        row = ttk.Frame(f); row.pack(fill='x', padx=4)
-        ttk.Label(row, text="Top K:").pack(side='left')
-        ttk.Entry(row, textvariable=self.topk_var, width=6).pack(side='left', padx=4)
-        ttk.Button(f, text="sort (all traffic)",
-                   command=lambda: self._run(['sort','--top', self.topk_var.get()])
-                   ).pack(fill='x', padx=4, pady=2)
-        ttk.Button(f, text="sort-https",
-                   command=lambda: self._run(['sort-https','--top', self.topk_var.get()])
-                   ).pack(fill='x', padx=4, pady=2)
+    if st.button("🎨 Visualize (requires networkx + pyvis)", key='btn_vis'):
+        vis_script = os.path.join(BASE_DIR, 'py', 'visualize_subgraph.py')
+        result = subprocess.run([sys.executable, vis_script,
+                                 '--edges', out_csv, '--out', out_html],
+                                capture_output=True, text=True)
+        st.text(result.stdout + result.stderr)
+        if os.path.exists(out_html):
+            st.success(f"Visualization saved to: {out_html}")
+            with open(out_html, 'r') as f:
+                html_content = f.read()
+            st.components.v1.html(html_content, height=600, scrolling=True)
 
-        # One-way
-        f2 = ttk.LabelFrame(parent, text="One-way Nodes")
-        f2.pack(fill='x', pady=4)
-        row2 = ttk.Frame(f2); row2.pack(fill='x', padx=4)
-        ttk.Label(row2, text="Threshold:").pack(side='left')
-        ttk.Entry(row2, textvariable=self.thresh_var, width=6).pack(side='left', padx=4)
-        ttk.Button(f2, text="sort-oneway",
-                   command=lambda: self._run(['sort-oneway','--threshold', self.thresh_var.get(),
-                                             '--top', self.topk_var.get()])
-                   ).pack(fill='x', padx=4, pady=2)
-
-        # Path
-        f3 = ttk.LabelFrame(parent, text="Path Finding")
-        f3.pack(fill='x', pady=4)
-        for lbl, var in [("Src IP:", self.src_var), ("Dst IP:", self.dst_var)]:
-            row = ttk.Frame(f3); row.pack(fill='x', padx=4)
-            ttk.Label(row, text=lbl, width=8).pack(side='left')
-            ttk.Entry(row, textvariable=var, width=18).pack(side='left', padx=2)
-        metric_row = ttk.Frame(f3); metric_row.pack(fill='x', padx=4)
-        ttk.Label(metric_row, text="Metric:").pack(side='left')
-        for m in ("hop", "congestion", "both"):
-            ttk.Radiobutton(metric_row, text=m, variable=self.metric_var, value=m).pack(side='left')
-        ttk.Button(f3, text="Find Path",
-                   command=lambda: self._run(['path','--src', self.src_var.get(),
-                                             '--dst', self.dst_var.get(),
-                                             '--metric', self.metric_var.get()])
-                   ).pack(fill='x', padx=4, pady=2)
-
-        # Stars
-        f4 = ttk.LabelFrame(parent, text="Star Topology")
-        f4.pack(fill='x', pady=4)
-        row4 = ttk.Frame(f4); row4.pack(fill='x', padx=4)
-        ttk.Label(row4, text="Min Leaves:").pack(side='left')
-        ttk.Entry(row4, textvariable=self.minleaf_var, width=6).pack(side='left', padx=4)
-        ttk.Button(f4, text="stars",
-                   command=lambda: self._run(['stars','--min-leaves', self.minleaf_var.get()])
-                   ).pack(fill='x', padx=4, pady=2)
-
-        # Security rule
-        f5 = ttk.LabelFrame(parent, text="IP Range Rule")
-        f5.pack(fill='x', pady=4)
-        for lbl, var in [("IP1:", self.ip1_var), ("Low:", self.low_var), ("High:", self.high_var)]:
-            row = ttk.Frame(f5); row.pack(fill='x', padx=4)
-            ttk.Label(row, text=lbl, width=6).pack(side='left')
-            ttk.Entry(row, textvariable=var, width=18).pack(side='left', padx=2)
-        mr = ttk.Frame(f5); mr.pack(fill='x', padx=4)
-        ttk.Label(mr, text="Mode:").pack(side='left')
-        for m in ("deny", "allow"):
-            ttk.Radiobutton(mr, text=m, variable=self.mode_var, value=m).pack(side='left')
-        ttk.Button(f5, text="Apply Rule",
-                   command=lambda: self._run(['rule','iprange','--mode', self.mode_var.get(),
-                                             '--ip1', self.ip1_var.get(),
-                                             '--low', self.low_var.get(),
-                                             '--high', self.high_var.get()])
-                   ).pack(fill='x', padx=4, pady=2)
-
-        # Export subgraph
-        f6 = ttk.LabelFrame(parent, text="Export Subgraph")
-        f6.pack(fill='x', pady=4)
-        row6 = ttk.Frame(f6); row6.pack(fill='x', padx=4)
-        ttk.Label(row6, text="IP:").pack(side='left')
-        ttk.Entry(row6, textvariable=self.expip_var, width=18).pack(side='left', padx=2)
-        ttk.Button(f6, text="Export & Visualize",
-                   command=self._export_and_visualize
-                   ).pack(fill='x', padx=4, pady=2)
-
-    def _browse(self):
-        path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv"), ("All", "*.*")])
-        if path:
-            self.csv_var.set(path)
-
-    def _run(self, args):
-        cmd = [APP_BINARY, '--input', self.csv_var.get()] + args
-        self.output.delete('1.0', 'end')
-        self.output.insert('end', f"$ {' '.join(cmd)}\n\n")
-        self.output.update()
-        threading.Thread(target=self._exec, args=(cmd,), daemon=True).start()
-
-    def _exec(self, cmd):
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-            out = result.stdout + (result.stderr if result.stderr else "")
-        except FileNotFoundError:
-            out = f"[ERROR] Binary not found: {APP_BINARY}\nRun 'make' first.\n"
-        except subprocess.TimeoutExpired:
-            out = "[ERROR] Command timed out\n"
-        except Exception as e:
-            out = f"[ERROR] {e}\n"
-        self.output.after(0, lambda: self._append(out))
-
-    def _append(self, text):
-        self.output.insert('end', text)
-        self.output.see('end')
-
-    def _export_and_visualize(self):
-        ip = self.expip_var.get().strip()
-        if not ip:
-            messagebox.showerror("Error", "Please enter an IP address")
-            return
-        out_csv  = os.path.join(os.path.dirname(APP_BINARY), 'out', 'subgraph_edges.csv')
-        out_html = os.path.join(os.path.dirname(APP_BINARY), 'out', 'subgraph.html')
-        self._run(['export-subgraph', '--ip', ip, '--out', out_csv])
-        # After export, run visualize
-        def _vis():
-            import time; time.sleep(2)  # wait for export to finish
-            vis_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'visualize_subgraph.py')
-            subprocess.Popen([sys.executable, vis_script,
-                             '--edges', out_csv, '--out', out_html])
-        threading.Thread(target=_vis, daemon=True).start()
-
-if __name__ == '__main__':
-    app = App()
-    app.mainloop()
+# ─── Sidebar stats result ────────────────────────────────────────────────────
+if 'result' in st.session_state:
+    with st.sidebar:
+        st.markdown("---")
+        st.subheader("Stats Result")
+        st.text(st.session_state['result'])
