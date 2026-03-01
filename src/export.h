@@ -10,12 +10,15 @@
  */
 
 /**
- * Export all edges in the connected component containing 'ip' to a CSV file.
- * CSV columns: src_ip,dst_ip,total_bytes,total_duration
- * @param g       built graph
- * @param ip      IP whose component to export
- * @param outfile output CSV file path
- * @return        number of edges exported, or -1 on error
+ * Export all edges and nodes in the connected component containing 'ip'.
+ * Edge CSV:
+ * src_ip,dst_ip,total_bytes,total_duration,tcp_bytes,udp_bytes,icmp_bytes,other_bytes
+ * Node CSV: ip,total_bytes,out_ratio,is_oneway,degree
+ * @param g          built graph
+ * @param ip         IP whose component to export
+ * @param edge_file  output edge CSV file path
+ * @param node_file  output node CSV file path
+ * @return           number of edges exported, or -1 on error
  */
 int export_subgraph(const Graph &g, const std::string &ip,
-                    const std::string &outfile);
+                    const std::string &edge_file, const std::string &node_file);

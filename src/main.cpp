@@ -207,7 +207,17 @@ int main(int argc, char *argv[]) {
       std::cerr << "[ERROR] --ip is required for export-subgraph\n";
       return 2;
     }
-    int ret = export_subgraph(g, opts.export_ip, opts.out_file);
+    // Derive node file path from edge file path
+    std::string edge_file = opts.out_file;
+    std::string node_file = edge_file;
+    size_t last_dot = node_file.find_last_of('.');
+    if (last_dot != std::string::npos) {
+      node_file.insert(last_dot, "_nodes");
+    } else {
+      node_file += "_nodes.csv";
+    }
+
+    int ret = export_subgraph(g, opts.export_ip, edge_file, node_file);
     if (ret < 0)
       return 3;
     if (ret == 0) {

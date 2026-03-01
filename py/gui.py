@@ -124,15 +124,23 @@ with tabs[6]:
 
     if st.button("🎨 Visualize (requires networkx + pyvis)", key='btn_vis'):
         vis_script = os.path.join(BASE_DIR, 'py', 'visualize_subgraph.py')
+        # Derive node file matching C++ logic (basename_nodes.csv)
+        node_csv = out_csv.replace(".csv", "_nodes.csv")
+        
         result = subprocess.run([sys.executable, vis_script,
-                                 '--edges', out_csv, '--out', out_html],
+                                 '--edges', out_csv, 
+                                 '--nodes', node_csv, 
+                                 '--out', out_html],
                                 capture_output=True, text=True)
-        st.text(result.stdout + result.stderr)
-        if os.path.exists(out_html):
-            st.success(f"Visualization saved to: {out_html}")
-            with open(out_html, 'r') as f:
-                html_content = f.read()
-            st.components.v1.html(html_content, height=600, scrolling=True)
+        if result.returncode != 0:
+            st.error(f"Visualization failed:\n{result.stderr}")
+        else:
+            st.text(result.stdout)
+            if os.path.exists(out_html):
+                st.success(f"Enhanced 'Bloom' Visualization ready!")
+                with open(out_html, 'r') as f:
+                    html_content = f.read()
+                st.components.v1.html(html_content, height=800, scrolling=True)
 
 # ─── Sidebar stats result ────────────────────────────────────────────────────
 if 'result' in st.session_state:
