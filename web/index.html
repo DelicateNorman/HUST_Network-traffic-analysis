@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Traffic Analyzer</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-network-wired logo-icon"></i>
+                <h2>NTA Pro</h2>
+            </div>
+
+            <div class="sidebar-content">
+                <div class="section-title">Configuration</div>
+                <div class="input-group">
+                    <label>CSV Data Source</label>
+                    <input type="text" id="csv-path" value="data/network_data.csv">
+                </div>
+
+                <button class="btn btn-primary btn-full" onclick="runCommand('stats', [])">
+                    <i class="fa-solid fa-chart-pie"></i> Load Graph Stats
+                </button>
+
+                <div class="section-title mt-xl">Analytics & Tools</div>
+                <ul class="nav-list">
+                    <li class="nav-item active" data-tab="sort" onclick="switchTab('sort')"><i
+                            class="fa-solid fa-sort-amount-down"></i> Sort Traffic</li>
+                    <li class="nav-item" data-tab="https" onclick="switchTab('https')"><i class="fa-solid fa-lock"></i>
+                        HTTPS Traffic</li>
+                    <li class="nav-item" data-tab="oneway" onclick="switchTab('oneway')"><i
+                            class="fa-solid fa-arrow-up-right-dots"></i> One-way Anomalies</li>
+                    <li class="nav-item" data-tab="path" onclick="switchTab('path')"><i class="fa-solid fa-route"></i>
+                        Path Finding</li>
+                    <li class="nav-item" data-tab="stars" onclick="switchTab('stars')"><i class="fa-solid fa-star"></i>
+                        Star Topology</li>
+                    <li class="nav-item" data-tab="rule" onclick="switchTab('rule')"><i
+                            class="fa-solid fa-shield-halved"></i> Security Rules</li>
+                    <li class="nav-item" data-tab="export" onclick="switchTab('export')"><i
+                            class="fa-solid fa-diagram-project"></i> Graph Vis (Bloom)</li>
+                </ul>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top bar glass effect -->
+            <header class="top-bar glass-panel">
+                <h1 id="tab-title">Sort Total Traffic</h1>
+                <div class="spacer"></div>
+                <div class="status-indicator">
+                    <div class="dot online"></div> Ready
+                </div>
+            </header>
+
+            <!-- Content Area -->
+            <div class="content-wrapper">
+
+                <!-- Tab Contents -->
+                <!-- 1. Sort -->
+                <div id="tab-sort" class="tab-pane active fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Sort Nodes by Total Traffic</h3>
+                        <div class="controls-row">
+                            <div class="input-group">
+                                <label>Top K</label>
+                                <input type="number" id="sort-top" value="20" min="1" max="500">
+                            </div>
+                            <button class="btn btn-primary"
+                                onclick="runCommand('sort', ['--top', document.getElementById('sort-top').value])">
+                                Run Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. HTTPS -->
+                <div id="tab-https" class="tab-pane fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Sort Nodes by HTTPS Traffic (Port 443)</h3>
+                        <div class="controls-row">
+                            <div class="input-group">
+                                <label>Top K</label>
+                                <input type="number" id="https-top" value="20" min="1" max="500">
+                            </div>
+                            <button class="btn btn-primary"
+                                onclick="runCommand('sort-https', ['--top', document.getElementById('https-top').value])">
+                                Run Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. One-way -->
+                <div id="tab-oneway" class="tab-pane fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Find One-way Traffic Anomalies</h3>
+                        <div class="controls-row">
+                            <div class="input-group">
+                                <label>Outbound Ratio Threshold</label>
+                                <input type="number" id="ow-thresh" value="0.8" step="0.05" min="0" max="1">
+                            </div>
+                            <div class="input-group">
+                                <label>Top K</label>
+                                <input type="number" id="ow-top" value="50" min="1" max="500">
+                            </div>
+                            <button class="btn btn-primary"
+                                onclick="runCommand('sort-oneway', ['--threshold', document.getElementById('ow-thresh').value, '--top', document.getElementById('ow-top').value])">
+                                Run Analysis
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Path -->
+                <div id="tab-path" class="tab-pane fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Find Path Between Nodes</h3>
+                        <div class="controls-row">
+                            <div class="input-group">
+                                <label>Source IP</label>
+                                <input type="text" id="path-src" value="115.156.142.194">
+                            </div>
+                            <div class="input-group">
+                                <label>Destination IP</label>
+                                <input type="text" id="path-dst" value="18.182.32.116">
+                            </div>
+                        </div>
+                        <div class="controls-row mt-sm">
+                            <div class="input-group">
+                                <label>Metric</label>
+                                <select id="path-metric">
+                                    <option value="hop">Hop Count (BFS)</option>
+                                    <option value="congestion">Congestion (Dijkstra)</option>
+                                    <option value="both" selected>Compare Both</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary"
+                                onclick="runCommand('path', ['--src', document.getElementById('path-src').value, '--dst', document.getElementById('path-dst').value, '--metric', document.getElementById('path-metric').value])">
+                                Find Path
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Stars -->
+                <div id="tab-stars" class="tab-pane fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Detect Star Topologies</h3>
+                        <div class="controls-row">
+                            <div class="input-group">
+                                <label>Minimum Leaves</label>
+                                <input type="number" id="stars-leaves" value="20" min="1">
+                            </div>
+                            <button class="btn btn-primary"
+                                onclick="runCommand('stars', ['--min-leaves', document.getElementById('stars-leaves').value])">
+                                Detect
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Rule -->
+                <div id="tab-rule" class="tab-pane fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Apply IP Range Rule</h3>
+                        <div class="controls-row">
+                            <div class="input-group">
+                                <label>Controlled IP (ip1)</label>
+                                <input type="text" id="rule-ip" value="115.156.142.194">
+                            </div>
+                            <div class="input-group">
+                                <label>Range Low</label>
+                                <input type="text" id="rule-low" value="18.182.32.100">
+                            </div>
+                            <div class="input-group">
+                                <label>Range High</label>
+                                <input type="text" id="rule-high" value="18.182.32.200">
+                            </div>
+                        </div>
+                        <div class="controls-row mt-sm">
+                            <div class="input-group">
+                                <label>Mode</label>
+                                <select id="rule-mode">
+                                    <option value="deny" selected>Deny (Flag inside range)</option>
+                                    <option value="allow">Allow (Flag outside range)</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary"
+                                onclick="runCommand('rule', ['iprange', '--mode', document.getElementById('rule-mode').value, '--ip1', document.getElementById('rule-ip').value, '--low', document.getElementById('rule-low').value, '--high', document.getElementById('rule-high').value])">
+                                Apply Rule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. Graph Export & Vis -->
+                <div id="tab-export" class="tab-pane fade-up">
+                    <div class="control-card glass-panel">
+                        <h3>Export Subgraph & "Bloom" Visualization</h3>
+                        <p class="desc-text">Exports the connected component containing the target IP and generates a
+                            premium interactive node graph.</p>
+                        <div class="controls-row mt-sm">
+                            <div class="input-group">
+                                <label>IP Address</label>
+                                <input type="text" id="exp-ip" value="115.156.142.194">
+                            </div>
+                            <button class="btn btn-special"
+                                onclick="runVisualization(document.getElementById('exp-ip').value)">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Vis
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="vis-container" class="vis-container glass-panel hidden mt-md">
+                        <iframe id="vis-frame" src="" frameborder="0" width="100%" height="700px"></iframe>
+                    </div>
+                </div>
+
+                <!-- Output Console -->
+                <div class="console-panel glass-panel mt-md fade-up">
+                    <div class="console-header">
+                        <div class="mac-dots">
+                            <div class="mac-dot red"></div>
+                            <div class="mac-dot yellow"></div>
+                            <div class="mac-dot green"></div>
+                        </div>
+                        <span>Terminal Output</span>
+                    </div>
+                    <!-- Skeleton Loader -->
+                    <div id="loader" class="loader-bg hidden">
+                        <div class="spinner"></div>
+                        <div class="loading-text">Processing data...</div>
+                    </div>
+                    <pre id="console-output">Welcome to Network Traffic Analyzer Pro.
+Select a module from the sidebar and click run.</pre>
+                </div>
+
+            </div> <!-- content wrapper -->
+        </main>
+    </div>
+
+    <script src="/assets/app.js"></script>
+</body>
+
+</html>
