@@ -90,10 +90,10 @@ The GUI uses a lightweight `FastAPI` backend to interface with the C++ core, ren
 
 ```bash
 # Install requirements
-pip install fastapi uvicorn networkx pyvis
+pip install -r requirements.txt
 
 # Start the server
-python3 -m uvicorn py.server:app --port 8000
+python3 py/server.py
 ```
 **👉 Then open your browser to:** [http://localhost:8000](http://localhost:8000)
 
