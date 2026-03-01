@@ -6,7 +6,7 @@
 /**
  * cli.cpp
  * Command-line argument parsing.
- * All unknown flags produce an error with exit code 2.
+ * Supports global options anywhere and subcommands.
  */
 
 void print_help() {
@@ -59,13 +59,8 @@ CliOptions parse_args(int argc, char *argv[]) {
     std::exit(2);
   }
 
+  bool cmd_found = false;
   int i = 1;
-  opts.command = argv[i++];
-
-  // "rule" subcommand has a sub-subcommand
-  if (opts.command == "rule" && i < argc) {
-    opts.command = std::string("rule-") + argv[i++];
-  }
 
   while (i < argc) {
     std::string arg = argv[i++];
@@ -102,11 +97,35 @@ CliOptions parse_args(int argc, char *argv[]) {
       opts.dump_n = std::atoi(argv[i++]);
     else if (arg == "--show-node" && i < argc)
       opts.show_node_ip = argv[i++];
-    else {
-      std::cerr << "[ERROR] Unknown argument: " << arg << "\n";
+    else if (arg.size() > 2 && arg.substr(0, 2) == "--") {
+      std::cerr << "[ERROR] Unknown option: " << arg << "\n";
       std::cerr << "Use --help to see available options.\n";
       std::exit(2);
+    } else {
+      // Positional argument -> Subcommand
+      if (!cmd_found) {
+        opts.command = arg;
+        cmd_found = true;
+        // Handle "rule iprange"
+        if (opts.command == "rule" && i < argc) {
+          std::string sub = argv[i];
+          if (sub == "iprange") {
+            opts.command = "rule-iprange";
+            i++;
+          }
+        }
+      } else {
+        std::cerr << "[ERROR] Unknown argument: " << arg << "\n";
+        std::exit(2);
+      }
     }
   }
+
+  if (opts.command.empty()) {
+    std::cerr << "[ERROR] No command specified.\n";
+    print_help();
+    std::exit(2);
+  }
+
   return opts;
 }
