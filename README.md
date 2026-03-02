@@ -1,12 +1,15 @@
-# Network Traffic Analyzer & Anomaly Detector
+# Network Traffic Analyzer & Anomaly Detector 🚀
 
-A comprehensive C/C++ command-line application that reads network session data from CSV, builds a directed graph, provides traffic sorting/filtering, path finding, star topology detection, security rules, and features a premium Apple-style Web GUI and visualization suite.
+A comprehensive C/C++ command-line application that reads network session data from CSV, builds a directed graph, provides traffic sorting/filtering, path finding, star topology detection, security rules, and features a premium Apple-style Web GUI and real-time live dashboard monitoring suite.
 
-## What Was Built
+## 🔥 Key Innovations & Enterprise Features
 
-The project implements all Functional Requirements (FR-1 through FR-9) as outlined in the project goals, including several premium upgrades for data visualization.
+1. **Top-Tier "Apple Aesthetics" Web UI**: A glassmorphism dark-mode GUI built from scratch with semantic HTML, CSS3, and a FastApi backend. No Streamlit constraints!
+2. **Real-Time Live NTA Dashboard**: Continuously monitors a live physical network interface (`en0`) via `tcpdump`, aggressively parses PCAP delta using `RawPcapReader`, and streams live scanner anomaly detections to the Web UI.
+3. **Core Engineered C++ Kernel with Enterprise Logging**: The system's fast computational engine is backed by a Thread-Safe Singleton Logger (`logger.h`/`logger.cpp`) flushing audits to `out/app.log`.
+4. **Bilingual Academic Readiness**: The frontend, backend CLI, code constraints (Doxygen), and documentation feature extensive bilingual (English/Chinese) support.
 
-## Build Instructions
+## 🛠️ Build Instructions
 
 ```bash
 make
@@ -75,17 +78,18 @@ Flags 14 sessions where `115.156.142.194` communicated with IPs in the blocked r
 **Output Highlights:**
 Uses BFS to isolate the connected component for the given IP, exporting 237 edges and 220 nodes to CSV with enriched metadata (traffic ratio, degree, etc).
 
-## 🌸 "Make it Bloom" Enhancements: Premium Visualization & Native Web GUI (FR-8 & FR-9+)
+## 🌸 "Make it Bloom": Premium Web GUI & Real-Time Dashboard
 
 The project has been upgraded from standard CLI/Tkinter outputs to a premium, Apple-style Native UI Web App with interactive graph visualizations.
 
-### 1. Extract PCAP to CSV (FR-7)
+### 1. Extract PCAP to CSV
+You can manually convert live PCAP files using our optimized python extraction scripts:
 ```bash
 pip install scapy
-python3 py/extract_pcap.py --pcap capture.pcap --out data/network_data.csv
+python3 py/pcap_to_csv.py capture.pcap data/network_data.csv
 ```
 
-### 2. Run the Premium Web GUI
+### 2. Run the Premium Web GUI / Live Dashboard
 The GUI uses a lightweight `FastAPI` backend to interface with the C++ core, rendering a gorgeous semantic HTML/CSS frontend with glassmorphism and smooth animations.
 
 ```bash
@@ -98,10 +102,17 @@ python3 py/server.py
 **👉 Then open your browser to:** [http://localhost:8000](http://localhost:8000)
 
 **Visualization Features:**
+- **Live Dashboard**: Click "Start Live" to monitor physical captures in real-time.
 - **Dark Mode / Neon Aesthetic**: Deep `#0f0f1b` backgrounds with glowing elements.
 - **Semantic Node Styling**: Node size scales via `log(traffic)`.
 - **Anomaly Highlighting**: "One-way" scanning nodes glow red automatically.
 - **Rich Tooltips**: Hover over nodes/edges for protocol breakdown (TCP/UDP/ICMP).
+
+### 3. Terminal Auto-Capture Live Dashboard
+Don't want the Web UI? Run the high-performance terminal watcher which automatically spawns a `tcpdump` daemon!
+```bash
+python py/realtime_dashboard.py en0
+```
 
 ## Project Structure
 
