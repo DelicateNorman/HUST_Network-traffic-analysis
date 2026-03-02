@@ -33,6 +33,35 @@ python py/server.py
 > “首先是**数据读取**模块。我们使用 C++ 纯手工编写了 `csv_reader.cpp`，利用内存流（`std::stringstream`）以极高的效率跳过了坏行、处理了空字段，实现了快速的 CSV 解析。
 > 接下来是**图结构构建**。老师您可以看一眼源码中的 `src/graph.h`，这里我没有采用简单的二维数组，而是采用了更加适合稀疏网络图的**『基于哈希映射的邻接表 (std::unordered_map)』**。我们使用 `std::pair<int,int>` 提取五元组中的源IP和目的IP作为边（EdgeKey），并将包含同一方向的多个TCP/UDP会话通过 `build_graph()` 累加归并成了一条具有综合权重（如总流量、拥堵概率等）的超级边，这极大地压缩了内存占用。”
 
+**【展示代码：src/graph.h 与 src/graph.cpp 摘要】**
+```cpp
+// src/graph.h: 核心数据结构定义，摒弃庞大的二维矩阵
+struct Graph {
+    // 高效双向映射，O(1) 复杂度根据 IP 查询内部图 ID
+    std::unordered_map<std::string, int> ip_to_id;
+    std::vector<std::string> id_to_ip;
+    
+    // 采用邻接表，极大压缩十万级稀疏网络拓扑的内存空间
+    std::vector<std::vector<Edge>> adj;
+};
+
+// src/graph.cpp: 动态归并多路复用的会话边
+for (const auto& rec : records) {
+    int u = get_or_create(g, rec.source);
+    int v = get_or_create(g, rec.destination);
+    bool found = false;
+    for (auto& edge : g.adj[u]) {
+        if (edge.to == v) {
+            // 已存在路由：直接累加流量与时间，不额外增加节点内存
+            edge.stats.total_bytes += rec.data_size;
+            // ...
+            found = true; break;
+        }
+    }
+    if (!found) g.adj[u].push_back({v, initial_stats});
+}
+```
+
 ### 3. 流量排序 (21分)
 **【操作指令】**
 *(在网页端分别点击对应按钮，或在终端依次运行：)*
@@ -48,6 +77,18 @@ python py/server.py
 > 2. 这是**HTTPS 专题排序**。我们在图遍历时加入了一重滤波器，只对 Protocol 字段为 6（TCP）且目的端口 DstPort 为 443 的安全流量进行权重累加并排序。
 > 3. 第三个是我们的一个高级安全分析点：**单向流量异常筛查**。我们设定了一个 80% 的出向占比阈值，这个算法能够敏锐地抓取出局域网内光发包不收包的『哑巴主机』，他们大概率正在进行网络扫描（Scanner）或者是僵尸网络（Botnet）的被控机。”
 
+**【展示代码：src/analytics.cpp 摘要】**
+```cpp
+// 全局排序与单向异常排序的核心底层：利用 partial_sort 极速求解 Top K
+auto cmp = [](const NodeTraffic& a, const NodeTraffic& b) {
+    return a.total_bytes > b.total_bytes; // 或 a.out_ratio > b.out_ratio
+};
+
+// 时间复杂度保障：O(N * log(K))，远优于常规的全量排序 std::sort 的 O(N * log(N))
+size_t sort_len = std::min((size_t)top_k, entries.size());
+std::partial_sort(entries.begin(), entries.begin() + sort_len, entries.end(), cmp);
+```
+
 ### 4. 路径查找 (21分)
 **【操作指令】**
 *(网页端切换到 Path Finding，选择 Compare Both 运行，或在终端：)*
@@ -60,6 +101,32 @@ python py/server.py
 > 为了寻求**『最少跳数（中间路由最少）』**，我实现了经典且高效的 **BFS（广度优先搜索）** 算法，记录了访问前驱以进行路径回溯。
 > 而为了寻求**『最低拥塞路径』**，我将图结构中每条边的『网络吞吐量（字节/秒）』取了倒数作为拥塞成本权重模型，然后以此应用了带优先队列优化（`std::priority_queue`）的 **Dijkstra 算法**。
 > 执行这个 `both` 命令，系统会将这两条不同算法得出的路径摆在一起比对，我们可以直观看到算法的区别。”
+
+**【展示代码：src/path.cpp 摘要】**
+```cpp
+// 最低拥塞路径的基石：结合优先队列优化的 Dijkstra 单源最短路径算法
+// std::greater 保证最小项始终位于队顶，做到 O((V + E) log V) 极速寻路
+std::priority_queue<std::pair<double, int>, 
+                    std::vector<std::pair<double, int>>, 
+                    std::greater<>> pq;
+dist[src] = 0.0;
+pq.push({0.0, src});
+
+while (!pq.empty()) {
+    auto [d, u] = pq.top(); pq.pop();
+    if (d > dist[u]) continue;
+    
+    for (const auto& edge : g.adj[u]) {
+        // 自定义拥塞模型成本计算 = 1.0 / (流量带宽)
+        double cost = edge.stats.total_duration / std::max(1.0, (double)edge.stats.total_bytes);
+        if (dist[u] + cost < dist[edge.to]) {
+            dist[edge.to] = dist[u] + cost;
+            parent[edge.to] = u; // 精确记录前驱，用于后续路由回溯！
+            pq.push({dist[edge.to], edge.to});
+        }
+    }
+}
+```
 
 ---
 
