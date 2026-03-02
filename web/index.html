@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Network Traffic Analyzer</title>
+    <title>Network Traffic Analyzer / 网络流量分析器</title>
     <link rel="stylesheet" href="/assets/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -16,36 +16,55 @@
         <aside class="sidebar glass-panel">
             <div class="sidebar-header">
                 <i class="fa-solid fa-network-wired logo-icon"></i>
-                <h2>NTA Pro</h2>
+                <h2>NTA Pro <span class="header-cn">流量分析</span></h2>
             </div>
 
             <div class="sidebar-content">
-                <div class="section-title">Configuration</div>
+                <div class="section-title">Configuration / 基础配置</div>
                 <div class="input-group">
-                    <label>CSV Data Source</label>
+                    <label>CSV Data Source / 数据源路径</label>
                     <input type="text" id="csv-path" value="data/network_data.csv">
                 </div>
 
                 <button class="btn btn-primary btn-full" onclick="runCommand('stats', [])">
-                    <i class="fa-solid fa-chart-pie"></i> Load Graph Stats
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <div class="btn-text">Load Graph Stats <span>加载全局统计</span></div>
                 </button>
 
-                <div class="section-title mt-xl">Analytics & Tools</div>
+                <div class="section-title mt-xl">Analytics & Tools / 分析与工具</div>
                 <ul class="nav-list">
                     <li class="nav-item active" data-tab="sort" onclick="switchTab('sort')"><i
-                            class="fa-solid fa-sort-amount-down"></i> Sort Traffic</li>
+                            class="fa-solid fa-sort-amount-down"></i>
+                        <div class="nav-label">Sort Traffic <div class="nav-cn">流量排序</div>
+                        </div>
+                    </li>
                     <li class="nav-item" data-tab="https" onclick="switchTab('https')"><i class="fa-solid fa-lock"></i>
-                        HTTPS Traffic</li>
+                        <div class="nav-label">HTTPS Traffic <div class="nav-cn">HTTPS 流量</div>
+                        </div>
+                    </li>
                     <li class="nav-item" data-tab="oneway" onclick="switchTab('oneway')"><i
-                            class="fa-solid fa-arrow-up-right-dots"></i> One-way Anomalies</li>
+                            class="fa-solid fa-arrow-up-right-dots"></i>
+                        <div class="nav-label">One-way Anomalies <div class="nav-cn">单向异常排查</div>
+                        </div>
+                    </li>
                     <li class="nav-item" data-tab="path" onclick="switchTab('path')"><i class="fa-solid fa-route"></i>
-                        Path Finding</li>
+                        <div class="nav-label">Path Finding <div class="nav-cn">路径搜寻</div>
+                        </div>
+                    </li>
                     <li class="nav-item" data-tab="stars" onclick="switchTab('stars')"><i class="fa-solid fa-star"></i>
-                        Star Topology</li>
+                        <div class="nav-label">Star Topology <div class="nav-cn">星型拓扑检测</div>
+                        </div>
+                    </li>
                     <li class="nav-item" data-tab="rule" onclick="switchTab('rule')"><i
-                            class="fa-solid fa-shield-halved"></i> Security Rules</li>
+                            class="fa-solid fa-shield-halved"></i>
+                        <div class="nav-label">Security Rules <div class="nav-cn">安全规则拦截</div>
+                        </div>
+                    </li>
                     <li class="nav-item" data-tab="export" onclick="switchTab('export')"><i
-                            class="fa-solid fa-diagram-project"></i> Graph Vis (Bloom)</li>
+                            class="fa-solid fa-diagram-project"></i>
+                        <div class="nav-label">Graph Vis (Bloom) <div class="nav-cn">网络图可视化</div>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </aside>
@@ -54,10 +73,11 @@
         <main class="main-content">
             <!-- Top bar glass effect -->
             <header class="top-bar glass-panel">
-                <h1 id="tab-title">Sort Total Traffic</h1>
+                <h1 id="tab-title">Sort Total Traffic <span
+                        style="font-size: 0.85em; color: var(--text-secondary); font-weight: normal;">/ 流量排序</span></h1>
                 <div class="spacer"></div>
                 <div class="status-indicator">
-                    <div class="dot online"></div> Ready
+                    <div class="dot online"></div> Ready / 就绪
                 </div>
             </header>
 
@@ -68,15 +88,15 @@
                 <!-- 1. Sort -->
                 <div id="tab-sort" class="tab-pane active fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Sort Nodes by Total Traffic</h3>
+                        <h3>Sort Nodes by Total Traffic <span>/ 根据总流量排序节点</span></h3>
                         <div class="controls-row">
                             <div class="input-group">
-                                <label>Top K</label>
+                                <label>Top K <span>/ 前 K 个</span></label>
                                 <input type="number" id="sort-top" value="20" min="1" max="500">
                             </div>
                             <button class="btn btn-primary"
                                 onclick="runCommand('sort', ['--top', document.getElementById('sort-top').value])">
-                                Run Analysis
+                                <div class="btn-text">Run Analysis <span>运行分析</span></div>
                             </button>
                         </div>
                     </div>
@@ -85,15 +105,15 @@
                 <!-- 2. HTTPS -->
                 <div id="tab-https" class="tab-pane fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Sort Nodes by HTTPS Traffic (Port 443)</h3>
+                        <h3>Sort Nodes by HTTPS Traffic (Port 443) <span>/ 根据 HTTPS (443端口) 流量排序</span></h3>
                         <div class="controls-row">
                             <div class="input-group">
-                                <label>Top K</label>
+                                <label>Top K <span>/ 前 K 个</span></label>
                                 <input type="number" id="https-top" value="20" min="1" max="500">
                             </div>
                             <button class="btn btn-primary"
                                 onclick="runCommand('sort-https', ['--top', document.getElementById('https-top').value])">
-                                Run Analysis
+                                <div class="btn-text">Run Analysis <span>运行分析</span></div>
                             </button>
                         </div>
                     </div>
@@ -102,19 +122,19 @@
                 <!-- 3. One-way -->
                 <div id="tab-oneway" class="tab-pane fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Find One-way Traffic Anomalies</h3>
+                        <h3>Find One-way Traffic Anomalies <span>/ 发现单向流量异常 (扫描器排查)</span></h3>
                         <div class="controls-row">
                             <div class="input-group">
-                                <label>Outbound Ratio Threshold</label>
+                                <label>Ratio Threshold <span>/ 出向比例阈值</span></label>
                                 <input type="number" id="ow-thresh" value="0.8" step="0.05" min="0" max="1">
                             </div>
                             <div class="input-group">
-                                <label>Top K</label>
+                                <label>Top K <span>/ 前 K 个</span></label>
                                 <input type="number" id="ow-top" value="50" min="1" max="500">
                             </div>
                             <button class="btn btn-primary"
                                 onclick="runCommand('sort-oneway', ['--threshold', document.getElementById('ow-thresh').value, '--top', document.getElementById('ow-top').value])">
-                                Run Analysis
+                                <div class="btn-text">Run Analysis <span>运行分析</span></div>
                             </button>
                         </div>
                     </div>
@@ -123,29 +143,29 @@
                 <!-- 4. Path -->
                 <div id="tab-path" class="tab-pane fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Find Path Between Nodes</h3>
+                        <h3>Find Path Between Nodes <span>/ 寻找节点间最短与最优路径</span></h3>
                         <div class="controls-row">
                             <div class="input-group">
-                                <label>Source IP</label>
+                                <label>Source IP <span>/ 源 IP 地址</span></label>
                                 <input type="text" id="path-src" value="115.156.142.194">
                             </div>
                             <div class="input-group">
-                                <label>Destination IP</label>
+                                <label>Destination IP <span>/ 目标 IP 地址</span></label>
                                 <input type="text" id="path-dst" value="18.182.32.116">
                             </div>
                         </div>
                         <div class="controls-row mt-sm">
                             <div class="input-group">
-                                <label>Metric</label>
+                                <label>Metric <span>/ 寻路指标</span></label>
                                 <select id="path-metric">
-                                    <option value="hop">Hop Count (BFS)</option>
-                                    <option value="congestion">Congestion (Dijkstra)</option>
-                                    <option value="both" selected>Compare Both</option>
+                                    <option value="hop">Hop Count (BFS) / 最小跳数</option>
+                                    <option value="congestion">Congestion (Dijkstra) / 最低拥堵</option>
+                                    <option value="both" selected>Compare Both / 对比两者</option>
                                 </select>
                             </div>
                             <button class="btn btn-primary"
                                 onclick="runCommand('path', ['--src', document.getElementById('path-src').value, '--dst', document.getElementById('path-dst').value, '--metric', document.getElementById('path-metric').value])">
-                                Find Path
+                                <div class="btn-text">Find Path <span>寻找路径</span></div>
                             </button>
                         </div>
                     </div>
@@ -154,15 +174,15 @@
                 <!-- 5. Stars -->
                 <div id="tab-stars" class="tab-pane fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Detect Star Topologies</h3>
+                        <h3>Detect Star Topologies <span>/ 检测星型拓扑结构</span></h3>
                         <div class="controls-row">
                             <div class="input-group">
-                                <label>Minimum Leaves</label>
+                                <label>Minimum Leaves <span>/ 最小叶子节点数</span></label>
                                 <input type="number" id="stars-leaves" value="20" min="1">
                             </div>
                             <button class="btn btn-primary"
                                 onclick="runCommand('stars', ['--min-leaves', document.getElementById('stars-leaves').value])">
-                                Detect
+                                <div class="btn-text">Detect <span>开始检测</span></div>
                             </button>
                         </div>
                     </div>
@@ -171,32 +191,32 @@
                 <!-- 6. Rule -->
                 <div id="tab-rule" class="tab-pane fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Apply IP Range Rule</h3>
+                        <h3>Apply IP Range Rule <span>/ 运行 IP 范围安全规则</span></h3>
                         <div class="controls-row">
                             <div class="input-group">
-                                <label>Controlled IP (ip1)</label>
+                                <label>Controlled IP (ip1) <span>/ 受控 IP</span></label>
                                 <input type="text" id="rule-ip" value="115.156.142.194">
                             </div>
                             <div class="input-group">
-                                <label>Range Low</label>
+                                <label>Range Low <span>/ 访问范围起点</span></label>
                                 <input type="text" id="rule-low" value="18.182.32.100">
                             </div>
                             <div class="input-group">
-                                <label>Range High</label>
+                                <label>Range High <span>/ 访问范围终点</span></label>
                                 <input type="text" id="rule-high" value="18.182.32.200">
                             </div>
                         </div>
                         <div class="controls-row mt-sm">
                             <div class="input-group">
-                                <label>Mode</label>
+                                <label>Mode <span>/ 规则模式</span></label>
                                 <select id="rule-mode">
-                                    <option value="deny" selected>Deny (Flag inside range)</option>
-                                    <option value="allow">Allow (Flag outside range)</option>
+                                    <option value="deny" selected>Deny (Flag inside range) / 阻止 (标记范围内)</option>
+                                    <option value="allow">Allow (Flag outside range) / 允许 (标记范围外)</option>
                                 </select>
                             </div>
                             <button class="btn btn-primary"
                                 onclick="runCommand('rule', ['iprange', '--mode', document.getElementById('rule-mode').value, '--ip1', document.getElementById('rule-ip').value, '--low', document.getElementById('rule-low').value, '--high', document.getElementById('rule-high').value])">
-                                Apply Rule
+                                <div class="btn-text">Apply Rule <span>应用规则</span></div>
                             </button>
                         </div>
                     </div>
@@ -205,17 +225,18 @@
                 <!-- 7. Graph Export & Vis -->
                 <div id="tab-export" class="tab-pane fade-up">
                     <div class="control-card glass-panel">
-                        <h3>Export Subgraph & "Bloom" Visualization</h3>
+                        <h3>Export Subgraph & "Bloom" Visualization <span>/ 导出连通子图与炫彩可视化</span></h3>
                         <p class="desc-text">Exports the connected component containing the target IP and generates a
-                            premium interactive node graph.</p>
+                            premium interactive node graph.<br><span>导出包含目标 IP 的连通子图组件，并生成高级的可交互网络可视化图表。</span></p>
                         <div class="controls-row mt-sm">
                             <div class="input-group">
-                                <label>IP Address</label>
+                                <label>IP Address <span>/ 目标分析 IP</span></label>
                                 <input type="text" id="exp-ip" value="115.156.142.194">
                             </div>
                             <button class="btn btn-special"
                                 onclick="runVisualization(document.getElementById('exp-ip').value)">
-                                <i class="fa-solid fa-wand-magic-sparkles"></i> Generate Vis
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <div class="btn-text">Generate Vis <span>生成互动图表</span></div>
                             </button>
                         </div>
                     </div>
@@ -233,15 +254,15 @@
                             <div class="mac-dot yellow"></div>
                             <div class="mac-dot green"></div>
                         </div>
-                        <span>Terminal Output</span>
+                        <span>Terminal Output / 终端输出面板</span>
                     </div>
                     <!-- Skeleton Loader -->
                     <div id="loader" class="loader-bg hidden">
                         <div class="spinner"></div>
-                        <div class="loading-text">Processing data...</div>
+                        <div class="loading-text">Processing data... / 数据处理中...</div>
                     </div>
-                    <pre id="console-output">Welcome to Network Traffic Analyzer Pro.
-Select a module from the sidebar and click run.</pre>
+                    <pre id="console-output">Welcome to Network Traffic Analyzer Pro. / 欢迎使用网络流量高级分析工具。
+Select a module from the sidebar and click run. / 请在左侧边栏选择所需模块并运行。</pre>
                 </div>
 
             </div> <!-- content wrapper -->

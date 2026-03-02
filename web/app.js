@@ -4,15 +4,20 @@ const API_BASE = "http://127.0.0.1:8000";
 function switchTab(tabId) {
     // Nav active state
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+    const activeNav = document.querySelector(`[data-tab="${tabId}"]`);
+    activeNav.classList.add('active');
 
     // Content active state
     document.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('active'));
     document.getElementById(`tab-${tabId}`).classList.add('active');
 
-    // Update Title
-    const titleText = document.querySelector(`[data-tab="${tabId}"]`).innerText;
-    document.getElementById('tab-title').innerText = titleText;
+    // Update Title with bilingual text
+    const enTextNode = activeNav.querySelector('.nav-label').childNodes[0];
+    const enText = enTextNode ? enTextNode.textContent.trim() : '';
+    const cnNode = activeNav.querySelector('.nav-cn');
+    const cnText = cnNode ? cnNode.innerText.trim() : '';
+
+    document.getElementById('tab-title').innerHTML = `${enText} <span style="font-size: 0.85em; color: var(--text-secondary); font-weight: normal;">/ ${cnText}</span>`;
 }
 
 function showLoader() {
@@ -41,7 +46,7 @@ async function runCommand(baseCmd, paramsArray) {
     const args = [baseCmd, ...paramsArray];
 
     showLoader();
-    updateConsole(formatCmdLog(args) + "Executing...");
+    updateConsole(formatCmdLog(args) + "Executing... / 正在执行...");
 
     try {
         const response = await fetch(`${API_BASE}/api/run`, {
@@ -58,7 +63,7 @@ async function runCommand(baseCmd, paramsArray) {
             updateConsole(`[ERROR ${response.status}]\n${data.detail}`);
         }
     } catch (error) {
-        updateConsole(`[NETWORK ERROR]\n${error.message}`);
+        updateConsole(`[NETWORK ERROR / 网络错误]\n${error.message}`);
     } finally {
         hideLoader();
     }
@@ -71,7 +76,7 @@ async function runVisualization(ip) {
     const args = ['export-subgraph', '--ip', ip, '--out', outFile];
 
     showLoader();
-    updateConsole(formatCmdLog(args) + "Executing C++ subgraph export and generating Python/PyVis graph...");
+    updateConsole(formatCmdLog(args) + "Executing C++ subgraph export and generating Python/PyVis graph...\n正在导出 C++ 连通子图并生成 Python 交互图表...");
 
     // Hide iframe until ready
     document.getElementById('vis-container').classList.add('hidden');
@@ -97,7 +102,7 @@ async function runVisualization(ip) {
             updateConsole(`[ERROR ${response.status}]\n${data.detail}`);
         }
     } catch (error) {
-        updateConsole(`[NETWORK ERROR]\n${error.message}`);
+        updateConsole(`[NETWORK ERROR / 网络错误]\n${error.message}`);
     } finally {
         hideLoader();
     }
