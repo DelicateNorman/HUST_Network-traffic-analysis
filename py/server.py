@@ -89,39 +89,36 @@ live_state = {
 
 @app.post("/api/live")
 def api_live_dashboard(req: LiveRequest):
-    import time
+    import time, json
     pcap_path = req.pcap_file
     csv_live_path = os.path.join(BASE_DIR, 'data', 'live_data.csv')
     
     # Check if pcap exists
     if not os.path.exists(pcap_path):
-        return {"output": f"[!] Waiting for PCAP file: {pcap_path} ..."}
+        return {"type": "text", "output": f"[!] Waiting for PCAP file: {pcap_path} ..."}
         
     current_size = os.path.getsize(pcap_path)
     
     if current_size > live_state["last_size"]:
-        live_state["last_size"] = current_size
-        
-        # 1. Convert PCAP to CSV (Using the fast_convert method)
-        script_path = os.path.join(BASE_DIR, 'py', 'realtime_dashboard.py')
+        # Convert PCAP to CSV first
         try:
-            # We just need to import fast_convert from realtime_dashboard
             sys.path.append(os.path.join(BASE_DIR, 'py'))
             import realtime_dashboard
             realtime_dashboard.fast_convert(pcap_path, csv_live_path)
         except Exception as e:
-            return {"output": f"Conversion error: {e}"}
-            
-        # 2. Run C++ Analyzers and fetch JSON
+            return {"type": "text", "output": f"[CONVERSION ERROR / 转换失败] {e}"}
+
+        # Run C++ Analyzers
         try:
-            import json
             oneway_json_str = run_cli_cmd(["sort-oneway", "--threshold", "0.8", "--top", "3", "--json"], csv_live_path)
             oneway_data = json.loads(oneway_json_str)
             
             top_json_str = run_cli_cmd(["sort", "--top", "5", "--json"], csv_live_path)
             top_data = json.loads(top_json_str)
+
+            # SUCCESS: only now update last_size
+            live_state["last_size"] = current_size
             
-            # Pack into compound live UI structure
             live_payload = {
                 "type": "live",
                 "pcap_size_kb": current_size / 1024,
@@ -131,10 +128,15 @@ def api_live_dashboard(req: LiveRequest):
             }
             return {"type": "json", "data": live_payload}
         except Exception as e:
-            return {"type": "text", "output": f"[LIVE ERROR / 监控报错] {e}"}
+            return {"type": "text", "output": f"[ANALYSIS ERROR / 分析失败] {e}"}
         
     else:
-        return {"type": "text", "output": f"[{time.strftime('%H:%M:%S')}] No new packets detected. Listening..."}
+        return {"type": "text", "output": f"[{time.strftime('%H:%M:%S')}] No new packets detected. Listening... (file: {current_size/1024:.1f}KB / last: {live_state['last_size']/1024:.1f}KB)"}
+
+@app.get("/api/live/reset")
+def api_live_reset():
+    live_state["last_size"] = 0
+    return {"status": "reset", "last_size": 0}
 
 # Mount out directory to serve subgraph.html
 app.mount("/out", StaticFiles(directory=OUT_DIR), name="out")

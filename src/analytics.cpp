@@ -187,9 +187,9 @@ void print_https(const std::vector<NodeHttpsEntry> &entries, bool json_output) {
       std::cout << "  {\n"
                 << "    \"rank\": " << (i + 1) << ",\n"
                 << "    \"ip\": \"" << e.ip << "\",\n"
-                << "    \"total_bytes\": " << e.https_bytes << ",\n"
-                << "    \"out_bytes\": " << e.https_out << ",\n"
-                << "    \"in_bytes\": " << e.https_in << "\n"
+                << "    \"https_bytes\": " << e.https_bytes << ",\n"
+                << "    \"https_out\": " << e.https_out << ",\n"
+                << "    \"https_in\": " << e.https_in << "\n"
                 << "  }" << (i < (int)entries.size() - 1 ? "," : "") << "\n";
     }
     std::cout << "]\n";

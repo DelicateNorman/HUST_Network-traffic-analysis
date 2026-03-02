@@ -386,7 +386,8 @@ function toggleLiveDashboard() {
         btnText.innerHTML = 'Start Live <span>开启监控</span>';
         updateConsole("Live Dashboard stopped. / 实时监控已停止。");
     } else {
-        // Start live
+        // Start live — first reset server last_size so a fresh start always triggers data
+        fetch(`${API_BASE}/api/live/reset`).catch(() => { });
         updateConsole(`Starting Live Dashboard for ${pcapFile}... / 正在启动 ${pcapFile} 的实时监控...`);
         btnText.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Live <span>停止监控</span>';
 
