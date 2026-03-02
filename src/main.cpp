@@ -3,6 +3,7 @@
 #include "csv_reader.h"
 #include "export.h"
 #include "graph.h"
+#include "logger.h"
 #include "path.h"
 #include "rules.h"
 #include "star.h"
@@ -66,13 +67,24 @@ static void print_stats(const ReadResult &rr, const Graph &g) {
 }
 
 int main(int argc, char *argv[]) {
+  // Ensure the out/ directory exists
+  system("mkdir -p out");
+  Logger::get_instance().init("out/app.log");
+  Logger::get_instance().info("=== Application Started ===");
+
   CliOptions opts = parse_args(argc, argv);
+  Logger::get_instance().info("Arguments parsed. Input file: " +
+                              opts.input_file);
 
   // Load CSV (always needed)
   ReadResult rr = read_csv(opts.input_file);
   if (rr.parsed_ok == 0 && rr.total_lines == 0) {
+    Logger::get_instance().error("Failed to parse CSV file or empty file: " +
+                                 opts.input_file);
     return 3; // file I/O error
   }
+  Logger::get_instance().info("CSV loaded successfully. Lines parsed: " +
+                              std::to_string(rr.parsed_ok));
 
   // Print load summary for every command
   std::cout << "Loaded " << rr.parsed_ok << " sessions from " << opts.input_file
@@ -99,7 +111,11 @@ int main(int argc, char *argv[]) {
   }
 
   // Build graph
+  Logger::get_instance().info("Building Session Graph...");
   Graph g = build_graph(rr.records);
+  Logger::get_instance().info("Graph built with " +
+                              std::to_string(g.num_nodes()) + " nodes and " +
+                              std::to_string(g.num_edges()) + " edges.");
 
   // Optional show-node
   if (!opts.show_node_ip.empty()) {
@@ -126,6 +142,7 @@ int main(int argc, char *argv[]) {
 
   // Dispatch command
   const std::string &cmd = opts.command;
+  Logger::get_instance().info("Dispatching command: " + cmd);
 
   if (cmd == "stats") {
     print_stats(rr, g);
@@ -256,8 +273,10 @@ int main(int argc, char *argv[]) {
     std::cerr << "[ERROR] Unknown command / 未知命令: " << cmd << "\n";
     std::cerr
         << "Use --help to see available commands. / 查阅 --help 获取说明\n";
+    Logger::get_instance().error("Unknown command dispatched: " + cmd);
     return 2;
   }
 
+  Logger::get_instance().info("=== Application Finished Successfully ===");
   return 0;
 }
