@@ -56,6 +56,8 @@ std::vector<NodeTrafficEntry>
 sort_nodes_oneway(const Graph &g, double threshold = 0.8, int topk = 50);
 
 /// Print FR-3.1 / FR-3.3 results to stdout
-void print_traffic(const std::vector<NodeTrafficEntry> &entries);
+void print_traffic(const std::vector<NodeTrafficEntry> &entries,
+                   bool json_output = false);
 /// Print FR-3.2 results to stdout
-void print_https(const std::vector<NodeHttpsEntry> &entries);
+void print_https(const std::vector<NodeHttpsEntry> &entries,
+                 bool json_output = false);

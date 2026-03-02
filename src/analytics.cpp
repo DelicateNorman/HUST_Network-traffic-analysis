@@ -142,7 +142,25 @@ std::vector<NodeTrafficEntry> sort_nodes_oneway(const Graph &g,
   return result;
 }
 
-void print_traffic(const std::vector<NodeTrafficEntry> &entries) {
+void print_traffic(const std::vector<NodeTrafficEntry> &entries,
+                   bool json_output) {
+  if (json_output) {
+    std::cout << "[\n";
+    for (int i = 0; i < (int)entries.size(); i++) {
+      const auto &e = entries[i];
+      std::cout << "  {\n"
+                << "    \"rank\": " << (i + 1) << ",\n"
+                << "    \"ip\": \"" << e.ip << "\",\n"
+                << "    \"total_bytes\": " << e.total_bytes << ",\n"
+                << "    \"out_bytes\": " << e.out_bytes << ",\n"
+                << "    \"in_bytes\": " << e.in_bytes << ",\n"
+                << "    \"out_ratio\": " << e.out_ratio << "\n"
+                << "  }" << (i < (int)entries.size() - 1 ? "," : "") << "\n";
+    }
+    std::cout << "]\n";
+    return;
+  }
+
   std::cout << std::left << std::setw(6) << "Rank" << std::setw(20) << "IP"
             << std::setw(15) << "TotalBytes" << std::setw(15) << "OutBytes"
             << std::setw(15) << "InBytes" << std::setw(10) << "OutRatio"
@@ -161,7 +179,23 @@ void print_traffic(const std::vector<NodeTrafficEntry> &entries) {
   }
 }
 
-void print_https(const std::vector<NodeHttpsEntry> &entries) {
+void print_https(const std::vector<NodeHttpsEntry> &entries, bool json_output) {
+  if (json_output) {
+    std::cout << "[\n";
+    for (int i = 0; i < (int)entries.size(); i++) {
+      const auto &e = entries[i];
+      std::cout << "  {\n"
+                << "    \"rank\": " << (i + 1) << ",\n"
+                << "    \"ip\": \"" << e.ip << "\",\n"
+                << "    \"total_bytes\": " << e.https_bytes << ",\n"
+                << "    \"out_bytes\": " << e.https_out << ",\n"
+                << "    \"in_bytes\": " << e.https_in << "\n"
+                << "  }" << (i < (int)entries.size() - 1 ? "," : "") << "\n";
+    }
+    std::cout << "]\n";
+    return;
+  }
+
   std::cout << std::left << std::setw(6) << "Rank" << std::setw(20) << "IP"
             << std::setw(15) << "HttpsBytes" << std::setw(15) << "HttpsOut"
             << std::setw(15) << "HttpsIn"

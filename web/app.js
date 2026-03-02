@@ -28,18 +28,60 @@ function hideLoader() {
     document.getElementById('loader').classList.add('hidden');
 }
 
-function updateConsole(text) {
+function updateConsole(payload, formatLog = "") {
     const out = document.getElementById('console-output');
 
-    // Check if the text contains table-like structures (e.g. from sort or anomaly commands)
-    if (text.includes('=== Top') || text.includes('=== Nodes with') || text.includes('-------------------------------------')) {
-        out.innerHTML = parseTextToHTML(text);
+    if (payload && payload.type === 'json') {
+        out.innerHTML = formatLog + parseJSONToHTML(payload.data);
     } else {
-        out.innerText = text;
+        const text = formatLog + (payload.output || payload);
+        // Fallback for text: Check if text contains table-like structures
+        if (typeof text === 'string' && (text.includes('=== Top') || text.includes('=== Nodes with') || text.includes('-------------------------------------'))) {
+            out.innerHTML = parseTextToHTML(text);
+        } else {
+            out.innerText = text;
+        }
     }
 
     // Auto scroll
     out.scrollTop = out.scrollHeight;
+}
+
+// Generate HTML table securely from JSON data
+function parseJSONToHTML(jsonData) {
+    if (!jsonData || !jsonData.length) return "<i>No data available / 暂无数据</i>";
+
+    // Auto-detect headers from first object keys
+    const isHttps = 'https_bytes' in jsonData[0];
+
+    let html = '<div class="table-container fade-up"><table class="data-table"><thead><tr>';
+
+    if (isHttps) {
+        html += '<th>Rank</th><th>IP Address</th><th>HTTPS Bytes</th><th>HTTPS Out</th><th>HTTPS In</th>';
+    } else {
+        html += '<th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th>';
+    }
+    html += '</tr></thead><tbody>';
+
+    jsonData.forEach(row => {
+        html += '<tr>';
+        html += `<td>${row.rank}</td>`;
+        html += `<td class="ip-cell">${row.ip}</td>`;
+        if (isHttps) {
+            html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
+            html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
+            html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
+        } else {
+            html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
+            html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
+            html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
+            html += `<td><span class="ratio-badge ratio-${getRatioClass(parseFloat(row.out_ratio))}">${row.out_ratio.toFixed(3)}</span></td>`;
+        }
+        html += '</tr>';
+    });
+
+    html += '</tbody></table></div>';
+    return html;
 }
 
 // Advanced Parser: Converts C++ CLI tabular output into sleek HTML tables
@@ -135,10 +177,15 @@ function formatCmdLog(args) {
 // API Call Wrapper
 async function runCommand(baseCmd, paramsArray) {
     const csvPath = document.getElementById('csv-path').value;
-    const args = [baseCmd, ...paramsArray];
+
+    // Inject --json for table-generating commands
+    let args = [baseCmd, ...paramsArray];
+    if (['sort', 'sort-https', 'sort-oneway'].includes(baseCmd)) {
+        args.push('--json');
+    }
 
     showLoader();
-    updateConsole(formatCmdLog(args) + "Executing... / 正在执行...");
+    updateConsole("Executing... / 正在执行...\n", formatCmdLog(args));
 
     try {
         const response = await fetch(`${API_BASE}/api/run`, {
@@ -150,12 +197,12 @@ async function runCommand(baseCmd, paramsArray) {
         const data = await response.json();
 
         if (response.ok) {
-            updateConsole(formatCmdLog(args) + data.output);
+            updateConsole(data, formatCmdLog(args));
         } else {
-            updateConsole(`[ERROR ${response.status}]\n${data.detail}`);
+            updateConsole(`[ERROR ${response.status}]\n${data.detail}`, formatCmdLog(args));
         }
     } catch (error) {
-        updateConsole(`[NETWORK ERROR / 网络错误]\n${error.message}`);
+        updateConsole(`[NETWORK ERROR / 网络错误]\n${error.message}`, formatCmdLog(args));
     } finally {
         hideLoader();
     }

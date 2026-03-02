@@ -41,7 +41,13 @@ def run_cli_cmd(args: list[str], csv_path: str) -> str:
 @app.post("/api/run")
 def api_run_command(req: CommandRequest):
     output = run_cli_cmd(req.args, req.csv_path)
-    return {"output": output}
+    # Check if the output is JSON (from the new --json flag)
+    try:
+        import json
+        json_data = json.loads(output)
+        return {"type": "json", "data": json_data}
+    except Exception:
+        return {"type": "text", "output": output}
 
 @app.post("/api/visualize")
 def api_visualize(req: CommandRequest):

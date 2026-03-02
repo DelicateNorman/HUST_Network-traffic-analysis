@@ -40,6 +40,9 @@ struct CliOptions {
 
   // show-node
   std::string show_node_ip;
+
+  // Output format
+  bool json_output = false;
 };
 
 /**

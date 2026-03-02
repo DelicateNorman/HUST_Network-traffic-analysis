@@ -86,10 +86,12 @@ int main(int argc, char *argv[]) {
   Logger::get_instance().info("CSV loaded successfully. Lines parsed: " +
                               std::to_string(rr.parsed_ok));
 
-  // Print load summary for every command
-  std::cout << "Loaded " << rr.parsed_ok << " sessions from " << opts.input_file
-            << " (skipped " << rr.skipped << " lines) / 成功加载 "
-            << rr.parsed_ok << " 条会话数据\n\n";
+  // Print load summary for every command (unless json mode is on)
+  if (!opts.json_output) {
+    std::cout << "Loaded " << rr.parsed_ok << " sessions from "
+              << opts.input_file << " (skipped " << rr.skipped
+              << " lines) / 成功加载 " << rr.parsed_ok << " 条会话数据\n\n";
+  }
 
   // Optional dump
   if (opts.dump_n > 0) {
@@ -147,24 +149,33 @@ int main(int argc, char *argv[]) {
   if (cmd == "stats") {
     print_stats(rr, g);
   } else if (cmd == "sort") {
-    std::cout << "=== Top " << opts.top_k
-              << " Nodes by Total Traffic / 总流量前 " << opts.top_k
-              << " 名节点 ===\n";
+    if (!opts.json_output) {
+      std::cout << "=== Top " << opts.top_k
+                << " Nodes by Total Traffic / 总流量前 " << opts.top_k
+                << " 名节点 ===\n";
+    }
     auto entries = sort_nodes_by_traffic(g, opts.top_k);
-    print_traffic(entries);
+    print_traffic(entries, opts.json_output);
   } else if (cmd == "sort-https") {
-    std::cout << "=== Top " << opts.top_k
-              << " Nodes by HTTPS Traffic / HTTPS流量前 " << opts.top_k
-              << " 名节点 ===\n";
+    if (!opts.json_output) {
+      std::cout << "=== Top " << opts.top_k
+                << " Nodes by HTTPS Traffic / HTTPS流量前 " << opts.top_k
+                << " 名节点 ===\n";
+    }
     auto entries = sort_nodes_https(rr.records, g, opts.top_k);
-    print_https(entries);
+    print_https(entries, opts.json_output);
   } else if (cmd == "sort-oneway") {
-    std::cout << "=== Nodes with Outbound Ratio > " << opts.threshold
-              << " (Top " << opts.top_k << ") / 扫描器异常节点分析 ===\n";
+    if (!opts.json_output) {
+      std::cout << "=== Nodes with Outbound Ratio > " << opts.threshold
+                << " (Top " << opts.top_k << ") / 扫描器异常节点分析 ===\n";
+    }
     auto entries = sort_nodes_oneway(g, opts.threshold, opts.top_k);
-    print_traffic(entries);
-    std::cout << "Total one-way nodes found / 总计发现单向异常节点数: "
-              << entries.size() << "\n";
+    print_traffic(entries, opts.json_output);
+
+    if (!opts.json_output) {
+      std::cout << "Total one-way nodes found / 总计发现单向异常节点数: "
+                << entries.size() << "\n";
+    }
   } else if (cmd == "path") {
     if (opts.src_ip.empty() || opts.dst_ip.empty()) {
       std::cerr << "[ERROR] --src and --dst are required for path command / "

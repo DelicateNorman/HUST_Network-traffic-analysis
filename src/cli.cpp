@@ -124,6 +124,8 @@ CliOptions parse_args(int argc, char *argv[]) {
       opts.dump_n = std::atoi(argv[i++]);
     else if (arg == "--show-node" && i < argc)
       opts.show_node_ip = argv[i++];
+    else if (arg == "--json")
+      opts.json_output = true;
     else if (arg.size() > 2 && arg.substr(0, 2) == "--") {
       std::cerr << "[ERROR] Unknown option / 未知选项: " << arg << "\n";
       std::cerr
