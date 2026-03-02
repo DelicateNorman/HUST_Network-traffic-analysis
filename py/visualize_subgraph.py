@@ -63,54 +63,51 @@ def visualize(edges_file, nodes_file, out_file):
 
     # 3. Build pyvis network with premium aesthetics
     net = Network(height='900px', width='100%', directed=True,
-                  bgcolor='#0f0f1b', font_color='#e0e0e0')
+                  bgcolor='#fafafa', font_color='#333')
     
-    # Fine-tuned physics for "organic" feel
+    # Fine-tuned physics for clean, well-spread layout
     net.force_atlas_2based(
-        gravity=-60,
-        central_gravity=0.005,
-        spring_length=150,
-        spring_strength=0.08,
-        damping=0.4
+        gravity=-35,
+        central_gravity=0.003,
+        spring_length=100,
+        spring_strength=0.05,
+        damping=0.5
     )
 
-    # 4. Add Nodes with Semantic Styling
+    # 4. Add Nodes with Color-Coded Status (all same small size)
     for node in G.nodes():
         attr = node_attr.get(node, {'total_bytes': 0, 'out_ratio': 0, 'is_oneway': 0, 'degree': 0})
         
-        # Size based on traffic (log scale)
-        bytes_val = attr['total_bytes']
-        size = 10 + (math.log10(bytes_val + 1) * 5)
+        # Uniform small size - avoid overcrowding overlaps
+        size = 10
+        shape = 'dot'
         
-        # Color & Border
-        # Default: Neon Cyan/Blue
-        # Anomaly (Oneway): Glowing Red
+        # Color encodes state:
+        #   Red   (#FF3B30) = Anomaly / One-way outbound (potential scanner)
+        #   Orange(#FF9500) = High-degree hub / gateway node (degree >= 10)
+        #   Blue  (#007AFF) = Normal node (standard traffic)
+        degree = attr['degree']
         if attr['is_oneway']:
-            color = {'background': '#ff0055', 'border': '#ffffff', 'highlight': '#ff4d88'}
-            label_color = '#ff0055'
-            border_width = 3
-            shape = 'diamond'
+            color = {'background': '#FF3B30', 'border': '#FF6B6B', 'highlight': {'background': '#FF6B6B', 'border': '#FF3B30'}}
+            label_suffix = ' ⚠️'
+        elif degree >= 10:
+            color = {'background': '#FF9500', 'border': '#FFAB38', 'highlight': {'background': '#FFAB38', 'border': '#FF9500'}}
+            label_suffix = ' ★'
         else:
-            # Gradient based on traffic volume
-            # Low: Deep Indigo (#4a00e0) to High: Neon Cyan (#00d2ff)
-            ratio = min(1.0, math.log10(bytes_val + 1) / 8.0)
-            r = int(74 + (0 - 74) * ratio)
-            g = int(0 + (210 - 0) * ratio)
-            b = int(224 + (255 - 224) * ratio)
-            color = f'#{r:02x}{g:02x}{b:02x}'
-            label_color = '#e0e0e0'
-            border_width = 1
-            shape = 'dot'
+            color = {'background': '#007AFF', 'border': '#409CFF', 'highlight': {'background': '#409CFF', 'border': '#007AFF'}}
+            label_suffix = ''
 
+        bytes_val = attr['total_bytes']
         title = (f"<b>Node: {node}</b><br>"
                  f"Total Traffic: {bytes_val:,} bytes<br>"
                  f"Outbound Ratio: {attr['out_ratio']:.1%}<br>"
-                 f"Degree: {attr['degree']}<br>"
-                 f"{'⚠️ ANOMALY: Highly Outbound' if attr['is_oneway'] else 'Status: Normal'}")
+                 f"Degree: {degree}<br>"
+                 f"{'\u26a0\ufe0f ANOMALY: Highly Outbound (potential scanner)' if attr['is_oneway'] else ('\u2605 Hub/Gateway node' if degree >= 10 else 'Status: Normal')}")
 
+        # Only show IP label (no suffix on label to keep it clean)
         net.add_node(node, label=node, title=title,
                      color=color, size=size, shape=shape,
-                     borderWidth=border_width, font={'color': label_color, 'size': 14})
+                     borderWidth=2, font={'color': '#222', 'size': 11})
 
     # 5. Add Edges with Protocol Visuals
     for src, dst, data in G.edges(data=True):
@@ -120,16 +117,16 @@ def visualize(edges_file, nodes_file, out_file):
         udp = data['udp']
         icmp = data['icmp']
         
-        # Width proportional to volume
-        width = 1 + (math.log10(tb + 1))
+        # Edge width fixed (thin lines, clean look)
+        width = 1
         
-        # Edge color highlights protocol dominance
+        # Edge color indicates protocol dominance
         if tcp > udp and tcp > icmp:
-            color = '#00d2ff88' # Neon Blue (TCP)
+            color = {'color': '#007AFF88', 'highlight': '#007AFF'}
         elif udp > tcp and udp > icmp:
-            color = '#ffaa0088' # Orange (UDP)
+            color = {'color': '#FF950088', 'highlight': '#FF9500'}
         else:
-            color = '#ffffff44' # Grey
+            color = {'color': '#86868b55', 'highlight': '#86868b'}
             
         title = (f"<b>Connection: {src} → {dst}</b><br>"
                  f"Volume: {tb:,} bytes<br>"
@@ -141,22 +138,22 @@ def visualize(edges_file, nodes_file, out_file):
         
         net.add_edge(src, dst, title=title, width=width, color=color, arrows='to')
 
-    # Custom JS for "Neon Glow" effect in browser (Subtle shadow)
+    # vis.js options: clean layout, light shadow, smooth curved edges
     net.set_options("""
     {
       "nodes": {
         "shadow": {
           "enabled": true,
-          "color": "rgba(0,0,0,0.5)",
-          "size": 10,
-          "x": 5,
-          "y": 5
+          "color": "rgba(0,0,0,0.12)",
+          "size": 6,
+          "x": 2,
+          "y": 2
         }
       },
       "edges": {
         "smooth": {
           "type": "curvedCW",
-          "roundness": 0.2
+          "roundness": 0.15
         }
       }
     }
