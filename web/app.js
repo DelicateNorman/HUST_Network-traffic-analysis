@@ -51,20 +51,20 @@ function parseTextToHTML(rawText) {
     for (let i = 0; i < lines.length; i++) {
         const line = lines[i].trim();
 
-        // Match table headers (Rank IP TotalBytes...)
-        if (line.match(/^Rank\s+IP\s+TotalBytes/i) || line.match(/^排名\s*IP地址\s*总流量/)) {
+        // Match table headers
+        // Since C++ prints bilingual: "Rank  IP  TotalBytes..." and then "排名 IP地址 总流量..."
+        if (line.includes('Rank') && line.includes('IP') && line.includes('TotalBytes')) {
             if (!inTable) {
                 html += '<div class="table-container fade-up"><table class="data-table">';
                 inTable = true;
             }
-            // It's a header row
-            if (line.match(/^Rank/i)) {
-                html += '<thead><tr><th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th></tr></thead><tbody>';
-                continue;
-            } else {
-                // Skip the Chinese header and the dashed line
-                continue;
-            }
+            html += '<thead><tr><th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th></tr></thead><tbody>';
+            continue;
+        }
+
+        // Skip the Chinese header row which comes immediately after
+        if (inTable && line.includes('排名') && line.includes('IP地址')) {
+            continue;
         }
 
         // Skip Dashed lines in table
