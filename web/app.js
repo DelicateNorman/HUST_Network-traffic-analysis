@@ -49,39 +49,139 @@ function updateConsole(payload, formatLog = "") {
 
 // Generate HTML table securely from JSON data
 function parseJSONToHTML(jsonData) {
-    if (!jsonData || !jsonData.length) return "<i>No data available / 暂无数据</i>";
+    if (!jsonData) return "<i>No data available / 暂无数据</i>";
 
-    // Auto-detect headers from first object keys
-    const isHttps = 'https_bytes' in jsonData[0];
+    // Path Finding JSON Check
+    if (jsonData.hop_path && jsonData.cong_path) {
+        let html = '<div class="table-container fade-up" style="padding: 16px;">';
 
-    let html = '<div class="table-container fade-up"><table class="data-table"><thead><tr>';
+        html += '<h4 class="console-title"><i class="fa-solid fa-route"></i> Path Comparison / 路径对比</h4>';
 
-    if (isHttps) {
-        html += '<th>Rank</th><th>IP Address</th><th>HTTPS Bytes</th><th>HTTPS Out</th><th>HTTPS In</th>';
-    } else {
-        html += '<th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th>';
-    }
-    html += '</tr></thead><tbody>';
-
-    jsonData.forEach(row => {
-        html += '<tr>';
-        html += `<td>${row.rank}</td>`;
-        html += `<td class="ip-cell">${row.ip}</td>`;
-        if (isHttps) {
-            html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
-            html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
-            html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
+        // Hop Path
+        html += '<div><strong>[Minimum Hops (BFS) / 最少跳数]</strong><br>';
+        if (jsonData.hop_path.found) {
+            html += `<span class="ip-cell">${jsonData.hop_path.path}</span><br>`;
+            html += `<span class="text-blue">Hops: ${jsonData.hop_path.hops}</span>`;
         } else {
-            html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
-            html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
-            html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
-            html += `<td><span class="ratio-badge ratio-${getRatioClass(parseFloat(row.out_ratio))}">${row.out_ratio.toFixed(3)}</span></td>`;
+            html += '<span class="text-red">No path found / 未找到路径</span>';
         }
-        html += '</tr>';
-    });
+        html += '</div><br>';
 
-    html += '</tbody></table></div>';
-    return html;
+        // Congestion Path
+        html += '<div><strong>[Minimum Congestion (Dijkstra) / 最低拥堵]</strong><br>';
+        if (jsonData.cong_path.found) {
+            html += `<span class="ip-cell">${jsonData.cong_path.path}</span><br>`;
+            html += `<span class="text-blue">Hops: ${jsonData.cong_path.hops}</span> | `;
+            html += `<span class="text-yellow">Total Congestion: ${jsonData.cong_path.cost} bytes/s</span>`;
+        } else {
+            html += '<span class="text-red">No path found / 未找到路径</span>';
+        }
+        html += '</div>';
+
+        if (jsonData.hop_path.found && jsonData.cong_path.found) {
+            const same = jsonData.hop_path.path === jsonData.cong_path.path;
+            html += '<hr style="border-top:1px dashed var(--border-glow); margin: 12px 0;">';
+            html += `<div><strong>Difference:</strong> ${jsonData.cong_path.hops - jsonData.hop_path.hops} hops / Same Path: <span class="${same ? 'text-green' : 'text-red'}">${same ? 'Yes' : 'No'}</span></div>`;
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    // Live Dashboard Compound JSON Check
+    if (jsonData.type === 'live') {
+        let html = '<div class="table-container fade-up" style="padding: 16px; background: rgba(0,0,0,0.02);">';
+        html += `<h4 class="console-title text-green" style="margin-bottom: 8px;"><i class="fa-solid fa-satellite-dish"></i> Live Dashboard Update / 实时刷新 (${jsonData.time})</h4>`;
+        html += `<div style="font-weight:bold; margin-bottom: 12px;">PCAP Size: ${jsonData.pcap_size_kb.toFixed(2)} KB</div>`;
+
+        html += '<hr style="border-top:1px dashed var(--border-glow); margin: 12px 0;">';
+
+        html += `<h4 class="console-title text-red font-bold pulse-text" style="font-size: 1.1em;"><i class="fa-solid fa-triangle-exclamation"></i> [安全预警] Scanner Anomalies / 扫描器异常节点:</h4>`;
+        html += parseJSONToHTML(jsonData.oneway);
+
+        html += '<hr style="border-top:1px dashed var(--border-glow); margin: 16px 0;">';
+
+        html += `<h4 class="console-title text-blue font-bold" style="font-size: 1.1em;"><i class="fa-solid fa-server"></i> [带宽枢纽] Top Nodes / 全网实时流量主干:</h4>`;
+        html += parseJSONToHTML(jsonData.top_nodes);
+
+        html += '</div>';
+        return html;
+    }
+
+    // Array of records Check
+    if (Array.isArray(jsonData)) {
+        if (!jsonData.length) return "<i>No data available / 暂无数据</i>";
+
+        // Stars JSON Check
+        if ('center' in jsonData[0] && 'leaves' in jsonData[0]) {
+            let html = '<div class="table-container fade-up" style="padding: 16px;">';
+            html += `<h4 class="console-title"><i class="fa-solid fa-network-wired"></i> Found ${jsonData.length} Star Topology(ies) / 发现星型结构</h4>`;
+
+            jsonData.forEach(star => {
+                html += `<div style="margin-bottom: 16px; padding: 12px; background: rgba(0,0,0,0.03); border-radius: 8px;">`;
+                html += `<strong><span class="text-blue">${star.center}</span> (Center/中心节点)</strong><br>`;
+                html += `<div style="margin: 8px 0;">Leaves/向外发散节点 (${star.leaves.length}):</div>`;
+                html += `<div class="ip-cell" style="font-size: 0.85em; word-wrap: break-word;">${star.leaves.join(', ')}</div>`;
+                html += `</div>`;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // Rules Violations JSON Check
+        if ('reason' in jsonData[0] && 'source' in jsonData[0]) {
+            let html = `<h4 class="console-title text-red pulse-text"><i class="fa-solid fa-shield-halved"></i> Found ${jsonData.length} Security Violations / 安全拦截违规记录</h4>`;
+            html += '<div class="table-container fade-up"><table class="data-table"><thead><tr>';
+            html += '<th>Source IP</th><th>Destination IP</th><th>Protocol</th><th>Port (S-D)</th><th>Data (Bytes)</th><th>Reason</th>';
+            html += '</tr></thead><tbody>';
+
+            jsonData.forEach(row => {
+                html += '<tr>';
+                html += `<td class="ip-cell text-red">${row.source}</td>`;
+                html += `<td class="ip-cell">${row.destination}</td>`;
+                html += `<td>${row.protocol}</td>`;
+                html += `<td>${row.src_port} \u2192 ${row.dst_port}</td>`;
+                html += `<td>${row.data_size}</td>`;
+                html += `<td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${row.reason}">${row.reason}</td>`;
+                html += '</tr>';
+            });
+            html += '</tbody></table></div>';
+            return html;
+        }
+
+        // Default: Sort / Sort-HTTPS / Sort-Oneway traffic JSON tables
+        const isHttps = 'https_bytes' in jsonData[0];
+        let html = '<div class="table-container fade-up"><table class="data-table"><thead><tr>';
+
+        if (isHttps) {
+            html += '<th>Rank</th><th>IP Address</th><th>HTTPS Bytes</th><th>HTTPS Out</th><th>HTTPS In</th>';
+        } else {
+            html += '<th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th>';
+        }
+        html += '</tr></thead><tbody>';
+
+        jsonData.forEach(row => {
+            html += '<tr>';
+            html += `<td>${row.rank}</td>`;
+            html += `<td class="ip-cell">${row.ip}</td>`;
+            if (isHttps) {
+                html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
+            } else {
+                html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
+                html += `<td><span class="ratio-badge ratio-${getRatioClass(parseFloat(row.out_ratio))}">${row.out_ratio.toFixed(3)}</span></td>`;
+            }
+            html += '</tr>';
+        });
+
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    return "<i>Unknown JSON format / 未知格式</i>";
 }
 
 // Advanced Parser: Converts C++ CLI tabular output into sleek HTML tables
@@ -180,7 +280,7 @@ async function runCommand(baseCmd, paramsArray) {
 
     // Inject --json for table-generating commands
     let args = [baseCmd, ...paramsArray];
-    if (['sort', 'sort-https', 'sort-oneway'].includes(baseCmd)) {
+    if (['sort', 'sort-https', 'sort-oneway', 'path', 'stars', 'rule'].includes(baseCmd)) {
         args.push('--json');
     }
 
@@ -260,7 +360,11 @@ async function pollLiveStats(pcapFile) {
         const data = await response.json();
 
         if (response.ok) {
-            updateConsole(`[LIVE UPDATE / 实时刷新]\n${data.output}`);
+            if (data.type === 'json') {
+                updateConsole(data, "[LIVE UPDATE / 实时刷新]\n\n");
+            } else {
+                updateConsole(`[LIVE UPDATE / 实时刷新]\n${data.output}`);
+            }
         } else {
             updateConsole(`[LIVE ERROR]\n${data.detail}`);
             toggleLiveDashboard(); // Stop on error

@@ -33,5 +33,9 @@ apply_iprange_rule(const std::vector<SessionRecord> &sessions,
                    const std::string &ip1, const std::string &ip_low,
                    const std::string &ip_high, const std::string &mode);
 
-/// Print violations to stdout
-void print_violations(const std::vector<RuleViolation> &violations);
+/**
+ * @brief Prints the list of rule violations in a tabular format.
+ * @param violations Vector of detected rule violations.
+ */
+void print_violations(const std::vector<RuleViolation> &violations,
+                      bool json_output = false);

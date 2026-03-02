@@ -152,7 +152,33 @@ std::string format_path(const Graph &g, const std::vector<int> &ids) {
 }
 
 void print_path_comparison(const Graph &g, const PathResult &hop_result,
-                           const PathResult &cong_result) {
+                           const PathResult &cong_result, bool json_output) {
+  if (json_output) {
+    std::cout << "{\n"
+              << "  \"hop_path\": {\n"
+              << "    \"found\": " << (hop_result.found ? "true" : "false")
+              << ",\n";
+    if (hop_result.found) {
+      std::cout << "    \"path\": \"" << format_path(g, hop_result.node_ids)
+                << "\",\n"
+                << "    \"hops\": " << hop_result.hops << "\n";
+    }
+    std::cout << "  },\n"
+              << "  \"cong_path\": {\n"
+              << "    \"found\": " << (cong_result.found ? "true" : "false")
+              << ",\n";
+    if (cong_result.found) {
+      std::cout << "    \"path\": \"" << format_path(g, cong_result.node_ids)
+                << "\",\n"
+                << "    \"hops\": " << cong_result.hops << ",\n"
+                << "    \"cost\": " << std::fixed << std::setprecision(4)
+                << cong_result.cost << "\n";
+    }
+    std::cout << "  }\n"
+              << "}\n";
+    return;
+  }
+
   std::cout << "\n=== Path Comparison / 路径对比 ===\n";
   std::cout << "[Minimum Hops (BFS) / 最少跳数 (广度优先)]\n";
   if (!hop_result.found) {

@@ -43,4 +43,5 @@ std::string format_path(const Graph &g, const std::vector<int> &ids);
 
 /// Print comparison of two paths
 void print_path_comparison(const Graph &g, const PathResult &hop_result,
-                           const PathResult &cong_result);
+                           const PathResult &cong_result,
+                           bool json_output = false);

@@ -61,7 +61,24 @@ std::vector<StarTopology> detect_stars(const Graph &g, int min_leaves) {
   return results;
 }
 
-void print_stars(const std::vector<StarTopology> &stars) {
+void print_stars(const std::vector<StarTopology> &stars, bool json_output) {
+  if (json_output) {
+    std::cout << "[\n";
+    for (size_t i = 0; i < stars.size(); i++) {
+      std::cout << "  {\n"
+                << "    \"center\": \"" << stars[i].center << "\",\n"
+                << "    \"leaves\": [";
+      for (size_t j = 0; j < stars[i].leaves.size(); j++) {
+        std::cout << "\"" << stars[i].leaves[j] << "\""
+                  << (j < stars[i].leaves.size() - 1 ? ", " : "");
+      }
+      std::cout << "]\n"
+                << "  }" << (i < stars.size() - 1 ? "," : "") << "\n";
+    }
+    std::cout << "]\n";
+    return;
+  }
+
   if (stars.empty()) {
     std::cout << "No star topology found (no center with >= required leaves)\n";
     std::cout << "未检测到星型拓扑（不存在满足叶子节点数要求的中心节点）\n";

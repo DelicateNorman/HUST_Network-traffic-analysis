@@ -24,5 +24,9 @@ struct StarTopology {
  */
 std::vector<StarTopology> detect_stars(const Graph &g, int min_leaves = 20);
 
-/// Print star topology results to stdout
-void print_stars(const std::vector<StarTopology> &stars);
+/**
+ * @brief Prints the discovered star topologies to standard output.
+ * @param stars List of StarTopology objects to print.
+ */
+void print_stars(const std::vector<StarTopology> &stars,
+                 bool json_output = false);

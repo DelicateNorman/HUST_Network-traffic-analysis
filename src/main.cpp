@@ -224,23 +224,28 @@ int main(int argc, char *argv[]) {
     } else if (opts.metric == "both") {
       auto hop_pr = bfs_path(g, src, dst);
       auto cong_pr = dijkstra_path(g, src, dst);
-      print_path_comparison(g, hop_pr, cong_pr);
+      print_path_comparison(g, hop_pr, cong_pr, opts.json_output);
       if (!hop_pr.found && !cong_pr.found)
         return 5;
     } else {
       // Default: show both
-      std::cout << "Metric: both (hop + congestion) / 对比指标: 跳数+拥堵度\n";
+      if (!opts.json_output) {
+        std::cout
+            << "Metric: both (hop + congestion) / 对比指标: 跳数+拥堵度\n";
+      }
       auto hop_pr = bfs_path(g, src, dst);
       auto cong_pr = dijkstra_path(g, src, dst);
-      print_path_comparison(g, hop_pr, cong_pr);
+      print_path_comparison(g, hop_pr, cong_pr, opts.json_output);
       if (!hop_pr.found && !cong_pr.found)
         return 5;
     }
   } else if (cmd == "stars") {
-    std::cout << "=== Star Topology Detection / 星型拓扑检测 (min-leaves="
-              << opts.min_leaves << ") ===\n";
+    if (!opts.json_output) {
+      std::cout << "=== Star Topology Detection / 星型拓扑检测 (min-leaves="
+                << opts.min_leaves << ") ===\n";
+    }
     auto stars = detect_stars(g, opts.min_leaves);
-    print_stars(stars);
+    print_stars(stars, opts.json_output);
   } else if (cmd == "rule-iprange") {
     if (opts.rule_mode.empty() || opts.ip1.empty() || opts.ip_low.empty() ||
         opts.ip_high.empty()) {
@@ -248,13 +253,16 @@ int main(int argc, char *argv[]) {
                    "/ 规则错误：参数不全\n";
       return 2;
     }
-    std::cout << "=== IP Range Rule / IP访问范围检测 [" << opts.rule_mode
-              << "] ===\n";
-    std::cout << "IP1: " << opts.ip1 << "\n";
-    std::cout << "Range: [" << opts.ip_low << " - " << opts.ip_high << "]\n\n";
+    if (!opts.json_output) {
+      std::cout << "=== IP Range Rule / IP访问范围检测 [" << opts.rule_mode
+                << "] ===\n";
+      std::cout << "IP1: " << opts.ip1 << "\n";
+      std::cout << "Range: [" << opts.ip_low << " - " << opts.ip_high
+                << "]\n\n";
+    }
     auto violations = apply_iprange_rule(rr.records, opts.ip1, opts.ip_low,
                                          opts.ip_high, opts.rule_mode);
-    print_violations(violations);
+    print_violations(violations, opts.json_output);
   } else if (cmd == "export-subgraph") {
     if (opts.export_ip.empty()) {
       std::cerr << "[ERROR] --ip is required for export-subgraph / "

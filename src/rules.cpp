@@ -86,7 +86,28 @@ apply_iprange_rule(const std::vector<SessionRecord> &sessions,
   return violations;
 }
 
-void print_violations(const std::vector<RuleViolation> &violations) {
+void print_violations(const std::vector<RuleViolation> &violations,
+                      bool json_output) {
+  if (json_output) {
+    std::cout << "[\n";
+    for (size_t i = 0; i < violations.size(); i++) {
+      const auto &s = violations[i].session;
+      std::cout << "  {\n"
+                << "    \"source\": \"" << s.source << "\",\n"
+                << "    \"destination\": \"" << s.destination << "\",\n"
+                << "    \"protocol\": " << s.protocol << ",\n"
+                << "    \"src_port\": " << s.src_port << ",\n"
+                << "    \"dst_port\": " << s.dst_port << ",\n"
+                << "    \"data_size\": " << s.data_size << ",\n"
+                << "    \"duration\": " << std::fixed << std::setprecision(3)
+                << s.duration << ",\n"
+                << "    \"reason\": \"" << violations[i].reason << "\"\n"
+                << "  }" << (i < violations.size() - 1 ? "," : "") << "\n";
+    }
+    std::cout << "]\n";
+    return;
+  }
+
   if (violations.empty()) {
     std::cout << "No violations found. / 未发现违规记录。\n";
     return;

@@ -112,19 +112,29 @@ def api_live_dashboard(req: LiveRequest):
         except Exception as e:
             return {"output": f"Conversion error: {e}"}
             
-        # 2. Run C++ Analyzers
-        out_text = f"=== Live Dashboard Update ({time.strftime('%H:%M:%S')}) ===\n"
-        out_text += f"PCAP Size: {current_size / 1024:.2f} KB\n\n"
+        # 2. Run C++ Analyzers and fetch JSON
+        try:
+            import json
+            oneway_json_str = run_cli_cmd(["sort-oneway", "--threshold", "0.8", "--top", "3", "--json"], csv_live_path)
+            oneway_data = json.loads(oneway_json_str)
+            
+            top_json_str = run_cli_cmd(["sort", "--top", "5", "--json"], csv_live_path)
+            top_data = json.loads(top_json_str)
+            
+            # Pack into compound live UI structure
+            live_payload = {
+                "type": "live",
+                "pcap_size_kb": current_size / 1024,
+                "oneway": oneway_data,
+                "top_nodes": top_data,
+                "time": time.strftime('%H:%M:%S')
+            }
+            return {"type": "json", "data": live_payload}
+        except Exception as e:
+            return {"type": "text", "output": f"[LIVE ERROR / 监控报错] {e}"}
         
-        out_text += "🚨 [安全预警] 异常高频单向发包节点 (疑似扫描器/僵尸网络):\n"
-        out_text += run_cli_cmd(["sort-oneway", "--threshold", "0.8", "--top", "3"], csv_live_path)
-        
-        out_text += "\n📊 [带宽枢纽] 全网最新实时通信流量 Top 5 主机:\n"
-        out_text += run_cli_cmd(["sort", "--top", "5"], csv_live_path)
-        
-        return {"output": out_text}
     else:
-        return {"output": f"[{time.strftime('%H:%M:%S')}] No new packets detected. Listening..."}
+        return {"type": "text", "output": f"[{time.strftime('%H:%M:%S')}] No new packets detected. Listening..."}
 
 # Mount out directory to serve subgraph.html
 app.mount("/out", StaticFiles(directory=OUT_DIR), name="out")
