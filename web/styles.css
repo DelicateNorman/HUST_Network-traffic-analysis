@@ -1,12 +1,12 @@
 :root {
-    --bg-color: #0d0d12;
-    --sidebar-bg: rgba(20, 20, 28, 0.65);
-    --panel-bg: rgba(28, 28, 38, 0.65);
-    --border-glow: rgba(255, 255, 255, 0.08);
-    --text-primary: #f0f0f5;
-    --text-secondary: #9aa0a6;
+    --bg-color: #f5f5f7;
+    --sidebar-bg: rgba(255, 255, 255, 0.65);
+    --panel-bg: rgba(255, 255, 255, 0.85);
+    --border-glow: rgba(0, 0, 0, 0.08);
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
     --accent-blue: #0A84FF;
-    --accent-blue-hover: #409CFF;
+    --accent-blue-hover: #0071e3;
     --accent-special: linear-gradient(135deg, #0A84FF, #BF5AF2);
     --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", PingFang SC, Hiragino Sans GB, Microsoft YaHei, Roboto, Helvetica, Arial, sans-serif;
 }
@@ -25,8 +25,8 @@ body {
     overflow: hidden;
     /* App-style, no body scroll */
     background-image:
-        radial-gradient(circle at 15% 50%, rgba(10, 132, 255, 0.08), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(191, 90, 242, 0.06), transparent 25%);
+        radial-gradient(circle at 15% 50%, rgba(10, 132, 255, 0.06), transparent 30%),
+        radial-gradient(circle at 85% 30%, rgba(191, 90, 242, 0.04), transparent 30%);
 }
 
 .app-container {
@@ -123,7 +123,7 @@ body {
 }
 
 .nav-item.active {
-    background: rgba(10, 132, 255, 0.15);
+    background: rgba(10, 132, 255, 0.1);
     color: var(--accent-blue);
     font-weight: 500;
 }
@@ -164,7 +164,7 @@ body {
     align-items: center;
     border-bottom: 1px solid var(--border-glow);
     z-index: 5;
-    background: rgba(20, 20, 28, 0.65);
+    background: rgba(255, 255, 255, 0.65);
 }
 
 .top-bar h1 {
@@ -268,7 +268,7 @@ body {
 
 input,
 select {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(255, 255, 255, 0.9);
     border: 1px solid var(--border-glow);
     padding: 10px 14px;
     border-radius: 8px;
@@ -352,12 +352,12 @@ select:focus {
 }
 
 .console-header {
-    background: rgba(0, 0, 0, 0.4);
+    background: rgba(0, 0, 0, 0.04);
     padding: 10px 16px;
     display: flex;
     align-items: center;
     gap: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .mac-dots {
@@ -393,13 +393,13 @@ pre {
     padding: 16px;
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
     font-size: 0.9rem;
-    color: #4AF626;
-    /* Terminal green */
+    color: #1d1d1f;
+    /* Light terminal text */
     overflow-y: auto;
     flex: 1;
     margin: 0;
     white-space: pre-wrap;
-    background: rgba(10, 10, 15, 0.8);
+    background: rgba(255, 255, 255, 0.8);
 }
 
 /* Skeleton Loader */
@@ -409,7 +409,7 @@ pre {
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(10, 10, 15, 0.85);
+    background: rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(4px);
     display: flex;
     flex-direction: column;
@@ -422,7 +422,7 @@ pre {
 .spinner {
     width: 40px;
     height: 40px;
-    border: 3px solid rgba(255, 255, 255, 0.1);
+    border: 3px solid rgba(0, 0, 0, 0.1);
     border-top-color: var(--accent-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
