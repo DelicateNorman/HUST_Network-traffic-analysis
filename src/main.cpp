@@ -11,21 +11,32 @@
 #include <iostream>
 
 /**
- * main.cpp
- * Entry point: parse args, load CSV, build graph, dispatch command.
+ * @file main.cpp
+ * @brief Application entry point and command dispatcher.
+ *
+ * This file handles parsing arguments, loading the initial CSV dataset into
+ * memory, building the session graph, and dispatching execution to the
+ * requested analytics or feature module (e.g., sort, path finding, star
+ * topology).
+ *
  * Exit codes:
  *   0 = success, 2 = arg error, 3 = file I/O error,
  *   4 = node not found, 5 = path not found
  */
 
+/**
+ * @brief Prints global graph statistics to standard output.
+ * @param rr The result of the CSV read operation.
+ * @param g The constructed Session Graph.
+ */
 static void print_stats(const ReadResult &rr, const Graph &g) {
-  std::cout << "=== CSV Load Summary ===\n";
-  std::cout << "Total data lines: " << rr.total_lines << "\n";
-  std::cout << "Parsed OK:        " << rr.parsed_ok << "\n";
-  std::cout << "Skipped:          " << rr.skipped << "\n\n";
-  std::cout << "=== Graph Statistics ===\n";
-  std::cout << "Nodes (unique IPs): " << g.num_nodes() << "\n";
-  std::cout << "Edges (merged):     " << g.num_edges() << "\n";
+  std::cout << "=== CSV Load Summary / 数据加载摘要 ===\n";
+  std::cout << "Total data lines / 总数据行数: " << rr.total_lines << "\n";
+  std::cout << "Parsed OK / 解析成功:        " << rr.parsed_ok << "\n";
+  std::cout << "Skipped / 跳过行数:          " << rr.skipped << "\n\n";
+  std::cout << "=== Graph Statistics / 图结构统计 ===\n";
+  std::cout << "Nodes (unique IPs) / 节点总数: " << g.num_nodes() << "\n";
+  std::cout << "Edges (merged) / 边总数:       " << g.num_edges() << "\n";
 
   // Protocol distribution across sessions
   long long tcp = 0, udp = 0, icmp = 0, other = 0, total_bytes = 0;
@@ -38,8 +49,9 @@ static void print_stats(const ReadResult &rr, const Graph &g) {
       total_bytes += e.stats.total_bytes;
     }
   }
-  std::cout << "Total bytes (sum of edges): " << total_bytes << "\n";
-  std::cout << "Protocol breakdown:\n";
+  std::cout << "Total bytes (sum of edges) / 总流量(字节): " << total_bytes
+            << "\n";
+  std::cout << "Protocol breakdown / 协议分布:\n";
   if (total_bytes > 0) {
     std::cout << std::fixed << std::setprecision(1);
     std::cout << "  TCP:   " << tcp << " bytes (" << 100.0 * tcp / total_bytes
@@ -64,7 +76,8 @@ int main(int argc, char *argv[]) {
 
   // Print load summary for every command
   std::cout << "Loaded " << rr.parsed_ok << " sessions from " << opts.input_file
-            << " (skipped " << rr.skipped << " lines)\n\n";
+            << " (skipped " << rr.skipped << " lines) / 成功加载 "
+            << rr.parsed_ok << " 条会话数据\n\n";
 
   // Optional dump
   if (opts.dump_n > 0) {
@@ -92,11 +105,13 @@ int main(int argc, char *argv[]) {
   if (!opts.show_node_ip.empty()) {
     auto it = g.ip_to_id.find(opts.show_node_ip);
     if (it == g.ip_to_id.end()) {
-      std::cerr << "[ERROR] Node not found: " << opts.show_node_ip << "\n";
+      std::cerr << "[ERROR] Node not found / 未找到节点: " << opts.show_node_ip
+                << "\n";
       return 4;
     }
     int u = it->second;
-    std::cout << "Node " << opts.show_node_ip << " adjacency:\n";
+    std::cout << "Node / 节点 " << opts.show_node_ip
+              << " adjacency / 邻接信息:\n";
     std::cout << std::left << std::setw(20) << "Destination" << std::setw(12)
               << "TotalBytes" << std::setw(12) << "Duration"
               << "Sessions\n";
@@ -115,32 +130,40 @@ int main(int argc, char *argv[]) {
   if (cmd == "stats") {
     print_stats(rr, g);
   } else if (cmd == "sort") {
-    std::cout << "=== Top " << opts.top_k << " Nodes by Total Traffic ===\n";
+    std::cout << "=== Top " << opts.top_k
+              << " Nodes by Total Traffic / 总流量前 " << opts.top_k
+              << " 名节点 ===\n";
     auto entries = sort_nodes_by_traffic(g, opts.top_k);
     print_traffic(entries);
   } else if (cmd == "sort-https") {
-    std::cout << "=== Top " << opts.top_k << " Nodes by HTTPS Traffic ===\n";
+    std::cout << "=== Top " << opts.top_k
+              << " Nodes by HTTPS Traffic / HTTPS流量前 " << opts.top_k
+              << " 名节点 ===\n";
     auto entries = sort_nodes_https(rr.records, g, opts.top_k);
     print_https(entries);
   } else if (cmd == "sort-oneway") {
     std::cout << "=== Nodes with Outbound Ratio > " << opts.threshold
-              << " (Top " << opts.top_k << ") ===\n";
+              << " (Top " << opts.top_k << ") / 扫描器异常节点分析 ===\n";
     auto entries = sort_nodes_oneway(g, opts.threshold, opts.top_k);
     print_traffic(entries);
-    std::cout << "Total one-way nodes found: " << entries.size() << "\n";
+    std::cout << "Total one-way nodes found / 总计发现单向异常节点数: "
+              << entries.size() << "\n";
   } else if (cmd == "path") {
     if (opts.src_ip.empty() || opts.dst_ip.empty()) {
-      std::cerr << "[ERROR] --src and --dst are required for path command\n";
+      std::cerr << "[ERROR] --src and --dst are required for path command / "
+                   "寻路需指定 --src 与 --dst \n";
       return 2;
     }
     auto src_it = g.ip_to_id.find(opts.src_ip);
     auto dst_it = g.ip_to_id.find(opts.dst_ip);
     if (src_it == g.ip_to_id.end()) {
-      std::cerr << "[ERROR] Source IP not found: " << opts.src_ip << "\n";
+      std::cerr << "[ERROR] Source IP not found / 未找到源IP: " << opts.src_ip
+                << "\n";
       return 4;
     }
     if (dst_it == g.ip_to_id.end()) {
-      std::cerr << "[ERROR] Destination IP not found: " << opts.dst_ip << "\n";
+      std::cerr << "[ERROR] Destination IP not found / 未找到目标IP: "
+                << opts.dst_ip << "\n";
       return 4;
     }
     int src = src_it->second;
@@ -149,26 +172,27 @@ int main(int argc, char *argv[]) {
     if (opts.metric == "hop") {
       auto pr = bfs_path(g, src, dst);
       if (!pr.found) {
-        std::cout << "No path found from " << opts.src_ip << " to "
+        std::cout << "No path found from / 未找到路径 " << opts.src_ip << " to "
                   << opts.dst_ip << "\n";
         return 5;
       }
-      std::cout << "=== Minimum Hops Path ===\n";
-      std::cout << "Path: " << format_path(g, pr.node_ids) << "\n";
-      std::cout << "Hops: " << pr.hops << "\n";
+      std::cout << "=== Minimum Hops Path / 最少跳数路径 (BFS) ===\n";
+      std::cout << "Path / 路径: " << format_path(g, pr.node_ids) << "\n";
+      std::cout << "Hops / 跳数: " << pr.hops << "\n";
     } else if (opts.metric == "congestion") {
       auto pr = dijkstra_path(g, src, dst);
       if (!pr.found) {
-        std::cout << "No path found from " << opts.src_ip << " to "
+        std::cout << "No path found from / 未找到路径 " << opts.src_ip << " to "
                   << opts.dst_ip << "\n";
         return 5;
       }
-      std::cout << "=== Minimum Congestion Path (Dijkstra) ===\n";
-      std::cout << "Path:               " << format_path(g, pr.node_ids)
+      std::cout
+          << "=== Minimum Congestion Path / 最低拥堵路径 (Dijkstra) ===\n";
+      std::cout << "Path / 路径:               " << format_path(g, pr.node_ids)
                 << "\n";
-      std::cout << "Hops:               " << pr.hops << "\n";
+      std::cout << "Hops / 跳数:               " << pr.hops << "\n";
       std::cout << std::fixed << std::setprecision(4);
-      std::cout << "Total Congestion:   " << pr.cost << " bytes/s\n";
+      std::cout << "Total Congestion / 总拥堵值:   " << pr.cost << " bytes/s\n";
     } else if (opts.metric == "both") {
       auto hop_pr = bfs_path(g, src, dst);
       auto cong_pr = dijkstra_path(g, src, dst);
@@ -177,7 +201,7 @@ int main(int argc, char *argv[]) {
         return 5;
     } else {
       // Default: show both
-      std::cout << "Metric: both (hop + congestion)\n";
+      std::cout << "Metric: both (hop + congestion) / 对比指标: 跳数+拥堵度\n";
       auto hop_pr = bfs_path(g, src, dst);
       auto cong_pr = dijkstra_path(g, src, dst);
       print_path_comparison(g, hop_pr, cong_pr);
@@ -185,18 +209,19 @@ int main(int argc, char *argv[]) {
         return 5;
     }
   } else if (cmd == "stars") {
-    std::cout << "=== Star Topology Detection (min-leaves=" << opts.min_leaves
-              << ") ===\n";
+    std::cout << "=== Star Topology Detection / 星型拓扑检测 (min-leaves="
+              << opts.min_leaves << ") ===\n";
     auto stars = detect_stars(g, opts.min_leaves);
     print_stars(stars);
   } else if (cmd == "rule-iprange") {
     if (opts.rule_mode.empty() || opts.ip1.empty() || opts.ip_low.empty() ||
         opts.ip_high.empty()) {
-      std::cerr
-          << "[ERROR] rule iprange requires --mode, --ip1, --low, --high\n";
+      std::cerr << "[ERROR] rule iprange requires --mode, --ip1, --low, --high "
+                   "/ 规则错误：参数不全\n";
       return 2;
     }
-    std::cout << "=== IP Range Rule [" << opts.rule_mode << "] ===\n";
+    std::cout << "=== IP Range Rule / IP访问范围检测 [" << opts.rule_mode
+              << "] ===\n";
     std::cout << "IP1: " << opts.ip1 << "\n";
     std::cout << "Range: [" << opts.ip_low << " - " << opts.ip_high << "]\n\n";
     auto violations = apply_iprange_rule(rr.records, opts.ip1, opts.ip_low,
@@ -204,7 +229,8 @@ int main(int argc, char *argv[]) {
     print_violations(violations);
   } else if (cmd == "export-subgraph") {
     if (opts.export_ip.empty()) {
-      std::cerr << "[ERROR] --ip is required for export-subgraph\n";
+      std::cerr << "[ERROR] --ip is required for export-subgraph / "
+                   "提取子图需要指定 --ip\n";
       return 2;
     }
     // Derive node file path from edge file path
@@ -221,14 +247,15 @@ int main(int argc, char *argv[]) {
     if (ret < 0)
       return 3;
     if (ret == 0) {
-      std::cerr << "[WARN] Subgraph has no edges.\n";
+      std::cerr << "[WARN] Subgraph has no edges. / 子图为空（无联通边）。\n";
     }
   } else if (cmd == "load") {
     // Just load and show stats
     print_stats(rr, g);
   } else {
-    std::cerr << "[ERROR] Unknown command: " << cmd << "\n";
-    std::cerr << "Use --help to see available commands.\n";
+    std::cerr << "[ERROR] Unknown command / 未知命令: " << cmd << "\n";
+    std::cerr
+        << "Use --help to see available commands. / 查阅 --help 获取说明\n";
     return 2;
   }
 

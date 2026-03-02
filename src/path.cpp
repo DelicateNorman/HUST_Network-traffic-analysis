@@ -6,12 +6,21 @@
 #include <vector>
 
 /**
- * path.cpp
- * FR-4: BFS (min hops) and Dijkstra (min congestion) path finding.
- * Both algorithms reconstruct the path using a prev[] array.
+ * @file path.cpp
+ * @brief Path finding algorithms implementation (FR-4).
+ *
+ * Provides Breadth-First Search (BFS) for finding the minimum hop path,
+ * and Dijkstra's algorithm for finding the minimum congestion path between
+ * nodes.
  */
 
-// BFS: minimum hop count path
+/**
+ * @brief Finds the shortest path by hop count using BFS.
+ * @param g The Session Graph.
+ * @param src Source node ID.
+ * @param dst Destination node ID.
+ * @return PathResult struct containing the discovered path and hop count.
+ */
 PathResult bfs_path(const Graph &g, int src, int dst) {
   PathResult result;
   int N = g.num_nodes();
@@ -60,8 +69,19 @@ PathResult bfs_path(const Graph &g, int src, int dst) {
   return result;
 }
 
-// Dijkstra: minimum congestion path
-// Edge weight = total_bytes / total_duration; skip edges with duration <= 0
+/**
+ * @brief Finds the path with minimum congestion using Dijkstra's algorithm.
+ *
+ * Edge weight is defined as (total_bytes / total_duration) representing
+ * bytes/sec. Edges with valid duration <= 0 are skipped to avoid infinite
+ * weights.
+ *
+ * @param g The Session Graph.
+ * @param src Source node ID.
+ * @param dst Destination node ID.
+ * @return PathResult struct with the optimal path and calculated congestion
+ * cost.
+ */
 PathResult dijkstra_path(const Graph &g, int src, int dst) {
   PathResult result;
   int N = g.num_nodes();
@@ -133,30 +153,33 @@ std::string format_path(const Graph &g, const std::vector<int> &ids) {
 
 void print_path_comparison(const Graph &g, const PathResult &hop_result,
                            const PathResult &cong_result) {
-  std::cout << "\n=== Path Comparison ===\n";
-  std::cout << "[Minimum Hops (BFS)]\n";
+  std::cout << "\n=== Path Comparison / 路径对比 ===\n";
+  std::cout << "[Minimum Hops (BFS) / 最少跳数 (广度优先)]\n";
   if (!hop_result.found) {
-    std::cout << "  No path found\n";
+    std::cout << "  No path found / 未找到路径\n";
   } else {
-    std::cout << "  Path: " << format_path(g, hop_result.node_ids) << "\n";
-    std::cout << "  Hops: " << hop_result.hops << "\n";
+    std::cout << "  Path / 路径: " << format_path(g, hop_result.node_ids)
+              << "\n";
+    std::cout << "  Hops / 跳数: " << hop_result.hops << "\n";
   }
 
-  std::cout << "\n[Minimum Congestion (Dijkstra)]\n";
+  std::cout << "\n[Minimum Congestion (Dijkstra) / 最低拥堵 (迪杰斯特拉)]\n";
   if (!cong_result.found) {
-    std::cout << "  No path found\n";
+    std::cout << "  No path found / 未找到路径\n";
   } else {
-    std::cout << "  Path: " << format_path(g, cong_result.node_ids) << "\n";
-    std::cout << "  Hops: " << cong_result.hops << "\n";
-    std::cout << "  Total Congestion: " << std::fixed << std::setprecision(4)
-              << cong_result.cost << " bytes/s\n";
+    std::cout << "  Path / 路径: " << format_path(g, cong_result.node_ids)
+              << "\n";
+    std::cout << "  Hops / 跳数: " << cong_result.hops << "\n";
+    std::cout << "  Total Congestion / 总拥堵量: " << std::fixed
+              << std::setprecision(4) << cong_result.cost << " bytes/s\n";
   }
 
   if (hop_result.found && cong_result.found) {
-    std::cout << "\n[Difference]\n";
-    std::cout << "  Hop difference: " << (cong_result.hops - hop_result.hops)
-              << " hops\n";
+    std::cout << "\n[Difference / 差异分析]\n";
+    std::cout << "  Hop difference / 跳数差: "
+              << (cong_result.hops - hop_result.hops) << " hops\n";
     bool same = (hop_result.node_ids == cong_result.node_ids);
-    std::cout << "  Same path: " << (same ? "Yes" : "No") << "\n";
+    std::cout << "  Same path / 路径是否相同: "
+              << (same ? "Yes / 是" : "No / 否") << "\n";
   }
 }

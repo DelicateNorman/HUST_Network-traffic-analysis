@@ -1,12 +1,12 @@
 #include "graph.h"
-#include <stdexcept>
 
 /**
- * graph.cpp
- * FR-2: Graph construction and edge merging.
- * Key algorithm: merge sessions with same (Source, Destination) into one edge.
- * Uses a temporary map<pair<int,int>, EdgeStats> to accumulate before building
- * adj list.
+ * @file graph.cpp
+ * @brief Graph construction and edge merging (FR-2).
+ *
+ * Provides the core data structure to represent network sessions as a directed
+ * graph. Edges between the same source and destination are merged, and their
+ * traffic statistics are accumulated.
  */
 
 int proto_index(int proto) {
@@ -19,6 +19,12 @@ int proto_index(int proto) {
   return 3;   // other
 }
 
+/**
+ * @brief Retrieves the internal integer ID for a given IP, creating it if
+ * needed.
+ * @param ip Intended IP address string.
+ * @return Internal integer ID representing this node.
+ */
 int Graph::get_or_create(const std::string &ip) {
   auto it = ip_to_id.find(ip);
   if (it != ip_to_id.end())
@@ -40,6 +46,17 @@ const Edge *Graph::find_edge(int u, int v) const {
   return nullptr;
 }
 
+/**
+ * @brief Builds a directed graph from raw session records, merging duplicate
+ * edges.
+ *
+ * Implements FR-2. Uses an intermediate mapping to accumulate EdgeStats (bytes,
+ * duration, protocol breakdowns) before committing them to the final adjacency
+ * list.
+ *
+ * @param sessions Vector of parsed SessionRecords.
+ * @return The fully constructed Graph.
+ */
 Graph build_graph(const std::vector<SessionRecord> &sessions) {
   Graph g;
 

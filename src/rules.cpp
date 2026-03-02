@@ -5,9 +5,12 @@
 #include <iostream>
 
 /**
- * rules.cpp
- * FR-6: IP Range Block Rule implementation.
- * IP comparison uses uint32 conversion: a.b.c.d -> (a<<24|b<<16|c<<8|d)
+ * @file rules.cpp
+ * @brief IP Range Block Rule implementation (FR-6).
+ *
+ * Checks network sessions against a defined IP bounding box rule.
+ * IP comparison utilizes an integer conversion approach mapping strings
+ * like "a.b.c.d" into a single uint32_t to perform fast range checks.
  */
 
 static bool ip_in_range(const std::string &ip, uint32_t lo, uint32_t hi) {
@@ -18,6 +21,18 @@ static bool ip_in_range(const std::string &ip, uint32_t lo, uint32_t hi) {
   return (v >= lo && v <= hi);
 }
 
+/**
+ * @brief Evaluates all sessions against an IP-range security policy.
+ *
+ * @param sessions The full list of parsed network sessions.
+ * @param ip1 The target or 'controlled' IP address.
+ * @param ip_low Lower bound of the given IP range.
+ * @param ip_high Upper bound of the given IP range.
+ * @param mode Either "deny" (flag activity inside range) or "allow" (flag
+ * activity outside range).
+ * @return std::vector<RuleViolation> List of offending sessions with attached
+ * reasons.
+ */
 std::vector<RuleViolation>
 apply_iprange_rule(const std::vector<SessionRecord> &sessions,
                    const std::string &ip1, const std::string &ip_low,
@@ -28,7 +43,8 @@ apply_iprange_rule(const std::vector<SessionRecord> &sessions,
   uint32_t hi = ip_to_int(ip_high, ok3);
 
   if (!ok1 || !ok2 || !ok3) {
-    std::cerr << "[ERROR] Invalid IP address in rule definition\n";
+    std::cerr << "[ERROR] Invalid IP address in rule definition / "
+                 "规则定义中包含了无效的IP地址\n";
     return {};
   }
   if (lo > hi)
@@ -50,8 +66,9 @@ apply_iprange_rule(const std::vector<SessionRecord> &sessions,
       if (other_in_range) {
         RuleViolation v;
         v.session = s;
-        v.reason = "DENY rule: " + ip1 + " communicated with " + other +
-                   " (in blocked range " + ip_low + "-" + ip_high + ")";
+        v.reason = "DENY rule / 黑名单违规: " + ip1 + " communicated with " +
+                   other + " (in blocked range / 处于禁止范围 " + ip_low + "-" +
+                   ip_high + ")";
         violations.push_back(v);
       }
     } else if (mode == "allow") {
@@ -59,8 +76,9 @@ apply_iprange_rule(const std::vector<SessionRecord> &sessions,
       if (!other_in_range) {
         RuleViolation v;
         v.session = s;
-        v.reason = "ALLOW rule: " + ip1 + " communicated with " + other +
-                   " (outside allowed range " + ip_low + "-" + ip_high + ")";
+        v.reason = "ALLOW rule / 白名单违规: " + ip1 + " communicated with " +
+                   other + " (outside allowed range / 超出允许的访问范围 " +
+                   ip_low + "-" + ip_high + ")";
         violations.push_back(v);
       }
     }
@@ -70,14 +88,20 @@ apply_iprange_rule(const std::vector<SessionRecord> &sessions,
 
 void print_violations(const std::vector<RuleViolation> &violations) {
   if (violations.empty()) {
-    std::cout << "No violations found.\n";
+    std::cout << "No violations found. / 未发现违规记录。\n";
     return;
   }
-  std::cout << "Found " << violations.size() << " violation(s):\n\n";
+  std::cout << "Found / 共计拦截 " << violations.size()
+            << " violation(s) / 条违规会话:\n\n";
   std::cout << std::left << std::setw(18) << "Source" << std::setw(18)
             << "Destination" << std::setw(6) << "Proto" << std::setw(8)
             << "SrcPort" << std::setw(8) << "DstPort" << std::setw(12)
             << "DataSize" << std::setw(12) << "Duration"
+            << "\n";
+  std::cout << std::left << std::setw(18) << "源IP" << std::setw(18) << "目的IP"
+            << std::setw(6) << "协议" << std::setw(8) << "源端口"
+            << std::setw(8) << "目的端口" << std::setw(12) << "数据大小"
+            << std::setw(12) << "持续时间"
             << "\n";
   std::cout << std::string(82, '-') << "\n";
   for (const auto &v : violations) {
@@ -88,5 +112,6 @@ void print_violations(const std::vector<RuleViolation> &violations) {
               << s.data_size << std::fixed << std::setprecision(3)
               << std::setw(12) << s.duration << "\n";
   }
-  std::cout << "\nReason sample: " << violations[0].reason << "\n";
+  std::cout << "\nReason sample / 违规原因示例: " << violations[0].reason
+            << "\n";
 }

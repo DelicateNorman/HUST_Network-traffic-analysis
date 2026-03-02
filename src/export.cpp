@@ -7,18 +7,33 @@
 #include <vector>
 
 /**
- * export.cpp
- * FR-9: Enhanced subgraph export.
- * Exports both edge and node metadata for premium visualization.
+ * @file export.cpp
+ * @brief Handles enhanced subgraph exporting (FR-9).
+ *
+ * Given a target IP address, this module locates the node, performs a
+ * Breadth-First Search to identify its connected component within the
+ * undirected form of the graph, and exports the enriched edges and nodes to
+ * separate CSV files for downstream visualizations.
  */
 
+/**
+ * @brief Exports an isolated connected component containing a designated IP to
+ * CSV files.
+ *
+ * @param g The full Session Graph.
+ * @param ip The IP address forming part of the target subnetwork.
+ * @param edge_file Path to save the extracted edges.
+ * @param node_file Path to save the extracted nodes with structural metadata.
+ * @return Number of edges successfully exported, or -1 on error.
+ */
 int export_subgraph(const Graph &g, const std::string &ip,
                     const std::string &edge_file,
                     const std::string &node_file) {
   // Find node id for the given IP
   auto it = g.ip_to_id.find(ip);
   if (it == g.ip_to_id.end()) {
-    std::cerr << "[ERROR] IP not found in graph: " << ip << "\n";
+    std::cerr << "[ERROR] IP not found in graph / 当前全图中不存在指定的IP: "
+              << ip << "\n";
     return -1;
   }
   int start = it->second;
@@ -57,7 +72,8 @@ int export_subgraph(const Graph &g, const std::string &ip,
   // ─── Export Edges ───
   std::ofstream ef(edge_file);
   if (!ef.is_open()) {
-    std::cerr << "[ERROR] Cannot open edge file: " << edge_file << "\n";
+    std::cerr << "[ERROR] Cannot open edge file / 无法创建边导出文件: "
+              << edge_file << "\n";
     return -1;
   }
   ef << "src_ip,dst_ip,total_bytes,total_duration,tcp_bytes,udp_bytes,icmp_"
@@ -82,7 +98,8 @@ int export_subgraph(const Graph &g, const std::string &ip,
   // ─── Export Nodes ───
   std::ofstream nf(node_file);
   if (!nf.is_open()) {
-    std::cerr << "[ERROR] Cannot open node file: " << node_file << "\n";
+    std::cerr << "[ERROR] Cannot open node file / 无法创建节点导出文件: "
+              << node_file << "\n";
     return -1;
   }
   nf << "ip,total_bytes,out_ratio,is_oneway,degree\n";
@@ -97,9 +114,10 @@ int export_subgraph(const Graph &g, const std::string &ip,
   }
   nf.close();
 
-  std::cout << "Subgraph for " << ip << " exported:\n";
-  std::cout << "  Edges: " << edge_count << " -> " << edge_file << "\n";
-  std::cout << "  Nodes in component: "
+  std::cout << "Subgraph for " << ip << " exported / 连通子图提取完毕:\n";
+  std::cout << "  Edges / 数据边数: " << edge_count << " -> " << edge_file
+            << "\n";
+  std::cout << "  Nodes in component / 组件内节点数: "
             << std::count(visited.begin(), visited.end(), true) << " -> "
             << node_file << "\n";
 

@@ -5,8 +5,11 @@
 #include <unordered_map>
 
 /**
- * analytics.cpp
- * FR-3: Implementation of traffic sorting and filtering.
+ * @file analytics.cpp
+ * @brief Implementation of traffic sorting and filtering (FR-3).
+ *
+ * Provides functions to rank nodes by total traffic, HTTPS traffic,
+ * and outbound ratio to detect anomalies such as scanners.
  */
 
 // Helper: secondary sort by IP string for stability
@@ -22,7 +25,13 @@ static bool cmp_https(const NodeHttpsEntry &a, const NodeHttpsEntry &b) {
   return a.ip < b.ip;
 }
 
-// FR-3.1: Sort all nodes by total traffic (out+in)
+/**
+ * @brief FR-3.1: Sorts all nodes by total traffic (outbound + inbound).
+ *
+ * @param g The populated Session Graph.
+ * @param topk The maximum number of top nodes to return.
+ * @return std::vector<NodeTrafficEntry> Ordered list of top nodes.
+ */
 std::vector<NodeTrafficEntry> sort_nodes_by_traffic(const Graph &g, int topk) {
   std::vector<NodeTrafficEntry> result;
   int N = g.num_nodes();
@@ -45,7 +54,16 @@ std::vector<NodeTrafficEntry> sort_nodes_by_traffic(const Graph &g, int topk) {
   return result;
 }
 
-// FR-3.2: HTTPS nodes - Protocol==6, DstPort==443
+/**
+ * @brief FR-3.2: Sorts nodes by HTTPS traffic (Protocol==6, DstPort==443).
+ *
+ * Aggregates only sessions matching the HTTPS criteria before sorting.
+ *
+ * @param sessions Raw session records.
+ * @param g The Session Graph.
+ * @param topk The maximum number of top nodes to return.
+ * @return std::vector<NodeHttpsEntry> Ordered list of top HTTPS nodes.
+ */
 std::vector<NodeHttpsEntry>
 sort_nodes_https(const std::vector<SessionRecord> &sessions, const Graph &g,
                  int topk) {
@@ -84,7 +102,17 @@ sort_nodes_https(const std::vector<SessionRecord> &sessions, const Graph &g,
   return result;
 }
 
-// FR-3.3: One-way nodes
+/**
+ * @brief FR-3.3: Finds one-way traffic anomaly nodes (scanners).
+ *
+ * Filters nodes where the ratio of outbound bytes to total bytes exceeds
+ * a given threshold (e.g., 0.8), indicating potential scanning behavior.
+ *
+ * @param g The Session Graph.
+ * @param threshold The outbound ratio threshold (0.0 to 1.0).
+ * @param topk The maximum number of top nodes to return.
+ * @return std::vector<NodeTrafficEntry> Ordered list of anomaly nodes.
+ */
 std::vector<NodeTrafficEntry> sort_nodes_oneway(const Graph &g,
                                                 double threshold, int topk) {
   std::vector<NodeTrafficEntry> result;
@@ -119,6 +147,10 @@ void print_traffic(const std::vector<NodeTrafficEntry> &entries) {
             << std::setw(15) << "TotalBytes" << std::setw(15) << "OutBytes"
             << std::setw(15) << "InBytes" << std::setw(10) << "OutRatio"
             << "\n";
+  std::cout << std::left << std::setw(6) << "排名" << std::setw(20) << "IP地址"
+            << std::setw(15) << "总流量" << std::setw(15) << "出向流量"
+            << std::setw(15) << "入向流量" << std::setw(10) << "出向占比"
+            << "\n";
   std::cout << std::string(81, '-') << "\n";
   for (int i = 0; i < (int)entries.size(); i++) {
     const auto &e = entries[i];
@@ -133,6 +165,10 @@ void print_https(const std::vector<NodeHttpsEntry> &entries) {
   std::cout << std::left << std::setw(6) << "Rank" << std::setw(20) << "IP"
             << std::setw(15) << "HttpsBytes" << std::setw(15) << "HttpsOut"
             << std::setw(15) << "HttpsIn"
+            << "\n";
+  std::cout << std::left << std::setw(6) << "排名" << std::setw(20) << "IP地址"
+            << std::setw(15) << "HTTPS总流量" << std::setw(15) << "HTTPS出向"
+            << std::setw(15) << "HTTPS入向"
             << "\n";
   std::cout << std::string(71, '-') << "\n";
   for (int i = 0; i < (int)entries.size(); i++) {
