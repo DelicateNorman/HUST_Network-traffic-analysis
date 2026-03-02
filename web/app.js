@@ -58,16 +58,22 @@ function parseTextToHTML(rawText) {
                 inTable = true;
             }
             // It's a header row
-            if (line.startsWith('Rank')) {
+            if (line.match(/^Rank/i)) {
                 html += '<thead><tr><th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th></tr></thead><tbody>';
+                continue;
+            } else {
                 // Skip the Chinese header and the dashed line
-                i += 2;
+                continue;
             }
+        }
+
+        // Skip Dashed lines in table
+        if (inTable && line.startsWith('-----')) {
             continue;
         }
 
         // Match table data rows (e.g., 1 115.156.142.194 12345 1000 11345 0.08)
-        const rowMatch = line.match(/^(\d+)\s+([\d\.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d\.]+)/);
+        const rowMatch = line.match(/^(\d+)\s+([0-9\.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([0-9\.]+)/);
         if (inTable && rowMatch) {
             html += `<tr>
                 <td>${rowMatch[1]}</td>
