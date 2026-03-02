@@ -165,9 +165,9 @@ function parseJSONToHTML(jsonData) {
             html += `<td>${row.rank}</td>`;
             html += `<td class="ip-cell">${row.ip}</td>`;
             if (isHttps) {
-                html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
-                html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
-                html += `<td>${parseInt(row.in_bytes).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.https_bytes).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.https_out).toLocaleString()}</td>`;
+                html += `<td>${parseInt(row.https_in).toLocaleString()}</td>`;
             } else {
                 html += `<td>${parseInt(row.total_bytes).toLocaleString()}</td>`;
                 html += `<td>${parseInt(row.out_bytes).toLocaleString()}</td>`;
@@ -280,7 +280,7 @@ async function runCommand(baseCmd, paramsArray) {
 
     // Inject --json for table-generating commands
     let args = [baseCmd, ...paramsArray];
-    if (['sort', 'sort-https', 'sort-oneway', 'path', 'stars', 'rule'].includes(baseCmd)) {
+    if (['sort', 'sort-https', 'sort-oneway', 'path', 'stars', 'rule-iprange'].includes(baseCmd)) {
         args.push('--json');
     }
 
