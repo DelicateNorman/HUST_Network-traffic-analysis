@@ -20,6 +20,9 @@ class CommandRequest(BaseModel):
     args: list[str]
     csv_path: str = DEF_CSV
 
+class LiveRequest(BaseModel):
+    pcap_file: str
+
 def run_cli_cmd(args: list[str], csv_path: str) -> str:
     cmd = [APP_BIN, '--input', csv_path] + args
     try:
@@ -72,6 +75,50 @@ def api_visualize(req: CommandRequest):
         return {"output": output + "\n" + result.stdout + "Enhanced 'Bloom' Visualization ready!", "html_ready": True}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Visualization failed: {e}")
+
+# Live Dashboard state caching
+live_state = {
+    "last_size": 0
+}
+
+@app.post("/api/live")
+def api_live_dashboard(req: LiveRequest):
+    import time
+    pcap_path = req.pcap_file
+    csv_live_path = os.path.join(BASE_DIR, 'data', 'live_data.csv')
+    
+    # Check if pcap exists
+    if not os.path.exists(pcap_path):
+        return {"output": f"[!] Waiting for PCAP file: {pcap_path} ..."}
+        
+    current_size = os.path.getsize(pcap_path)
+    
+    if current_size > live_state["last_size"]:
+        live_state["last_size"] = current_size
+        
+        # 1. Convert PCAP to CSV (Using the fast_convert method)
+        script_path = os.path.join(BASE_DIR, 'py', 'realtime_dashboard.py')
+        try:
+            # We just need to import fast_convert from realtime_dashboard
+            sys.path.append(os.path.join(BASE_DIR, 'py'))
+            import realtime_dashboard
+            realtime_dashboard.fast_convert(pcap_path, csv_live_path)
+        except Exception as e:
+            return {"output": f"Conversion error: {e}"}
+            
+        # 2. Run C++ Analyzers
+        out_text = f"=== Live Dashboard Update ({time.strftime('%H:%M:%S')}) ===\n"
+        out_text += f"PCAP Size: {current_size / 1024:.2f} KB\n\n"
+        
+        out_text += "🚨 [安全预警] 异常高频单向发包节点 (疑似扫描器/僵尸网络):\n"
+        out_text += run_cli_cmd(["sort-oneway", "--threshold", "0.8", "--top", "3"], csv_live_path)
+        
+        out_text += "\n📊 [带宽枢纽] 全网最新实时通信流量 Top 5 主机:\n"
+        out_text += run_cli_cmd(["sort", "--top", "5"], csv_live_path)
+        
+        return {"output": out_text}
+    else:
+        return {"output": f"[{time.strftime('%H:%M:%S')}] No new packets detected. Listening..."}
 
 # Mount out directory to serve subgraph.html
 app.mount("/out", StaticFiles(directory=OUT_DIR), name="out")

@@ -65,6 +65,12 @@
                         <div class="nav-label">Graph Vis (Bloom) <div class="nav-cn">网络图可视化</div>
                         </div>
                     </li>
+                    <li class="nav-item" data-tab="live" onclick="switchTab('live')"><i
+                            class="fa-solid fa-satellite-dish"></i>
+                        <div class="nav-label" style="color:var(--accent-color)">Live Dashboard <div class="nav-cn">
+                                实时监控大屏</div>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </aside>
@@ -243,6 +249,26 @@
 
                     <div id="vis-container" class="vis-container glass-panel hidden mt-md">
                         <iframe id="vis-frame" src="" frameborder="0" width="100%" height="700px"></iframe>
+                    </div>
+                </div>
+
+                <!-- 8. Live Dashboard -->
+                <div id="tab-live" class="tab-pane fade-up">
+                    <div class="control-card glass-panel" style="border: 1px solid var(--accent-color);">
+                        <h3 style="color:var(--accent-color)">Live PCAP Monitor <span>/ 真实网卡实时监控大屏</span></h3>
+                        <p class="desc-text">Connects to a live growing .pcap file (e.g., from tcpdump) and streams
+                            real-time anomaly detection and traffic
+                            rankings.<br><span>挂载持续增长的物理抓包文件，实时流式计算全网态势感知与扫描器预警。</span></p>
+                        <div class="controls-row mt-sm">
+                            <div class="input-group">
+                                <label>Live PCAP File <span>/ 实时数据流路径</span></label>
+                                <input type="text" id="live-pcap" value="my_capture.pcap">
+                            </div>
+                            <button id="btn-live-start" class="btn btn-special" onclick="toggleLiveDashboard()">
+                                <i class="fa-solid fa-play"></i>
+                                <div class="btn-text" id="live-btn-text">Start Live <span>开启监控</span></div>
+                            </button>
+                        </div>
                     </div>
                 </div>
 

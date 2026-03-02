@@ -1,0 +1,32 @@
+# Build artifacts
+app
+*.o
+*.out
+*.exe
+
+# Python env
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+env/
+.env
+
+# Data files (logs, pcaps, generated csvs)
+data/live_data.csv
+data/*.pcap
+out/
+logs/
+*.log
+
+# OS generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
