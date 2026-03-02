@@ -61,9 +61,9 @@ def visualize(edges_file, nodes_file, out_file):
 
     print(f"Loaded {G.number_of_nodes()} nodes, {edge_count} edges")
 
-    # 3. Build pyvis network with premium aesthetics
+    # 3. Build pyvis network with premium aesthetics (use remote CDN to prevent local 404s)
     net = Network(height='900px', width='100%', directed=True,
-                  bgcolor='#fafafa', font_color='#333')
+                  bgcolor='#fafafa', font_color='#333', cdn_resources='remote')
     
     # Fine-tuned physics for clean, well-spread layout
     net.force_atlas_2based(
@@ -138,9 +138,16 @@ def visualize(edges_file, nodes_file, out_file):
         
         net.add_edge(src, dst, title=title, width=width, color=color, arrows='to')
 
-    # vis.js options: clean layout, light shadow, smooth curved edges
+    # Force pyvis to use CDN so it doesn't look for local 'lib/bindings/utils.js' which causes 404
+    net.set_edge_smooth('curvedCW')
+    
+    # vis.js options: clean layout, light shadow, smooth curved edges, hover interactions
     net.set_options("""
     {
+      "interaction": {
+        "hover": true,
+        "tooltipDelay": 1000
+      },
       "nodes": {
         "shadow": {
           "enabled": true,
@@ -148,12 +155,6 @@ def visualize(edges_file, nodes_file, out_file):
           "size": 6,
           "x": 2,
           "y": 2
-        }
-      },
-      "edges": {
-        "smooth": {
-          "type": "curvedCW",
-          "roundness": 0.15
         }
       }
     }

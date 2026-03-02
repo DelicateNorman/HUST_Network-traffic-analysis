@@ -479,3 +479,130 @@ pre {
     border-radius: 16px;
     overflow: hidden;
 }
+
+/* ========================================= */
+/* Dynamic Tables & Console Rich Text Formatting */
+/* ========================================= */
+
+.console-line {
+    margin-bottom: 4px;
+    line-height: 1.5;
+}
+
+.console-title {
+    color: var(--accent-blue);
+    margin: 16px 0 12px 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.table-container {
+    margin: 12px 0 24px 0;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-glow);
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--font-family);
+    font-size: 0.85rem;
+    text-align: left;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.data-table th {
+    background: rgba(0, 0, 0, 0.03);
+    color: var(--text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.data-table tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.data-table tbody tr:hover {
+    background: rgba(10, 132, 255, 0.05);
+}
+
+.ip-cell {
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-weight: 500;
+    color: var(--accent-blue);
+}
+
+.ratio-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.ratio-high {
+    background: #ffebee;
+    color: #FF3B30;
+}
+
+.ratio-med {
+    background: #fff3e0;
+    color: #FF9500;
+}
+
+.ratio-low {
+    background: #e3f2fd;
+    color: #007AFF;
+}
+
+/* Text highlight utilities */
+.text-red {
+    color: #FF3B30;
+}
+
+.text-yellow {
+    color: #FF9500;
+}
+
+.text-green {
+    color: #34C759;
+}
+
+.text-blue {
+    color: #007AFF;
+}
+
+.font-bold {
+    font-weight: 600;
+}
+
+@keyframes pulse-text {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.pulse-text {
+    animation: pulse-text 2s infinite;
+}

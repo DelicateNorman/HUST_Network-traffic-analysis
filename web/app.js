@@ -30,9 +30,95 @@ function hideLoader() {
 
 function updateConsole(text) {
     const out = document.getElementById('console-output');
-    out.innerText = text;
+
+    // Check if the text contains table-like structures (e.g. from sort or anomaly commands)
+    if (text.includes('=== Top') || text.includes('=== Nodes with') || text.includes('-------------------------------------')) {
+        out.innerHTML = parseTextToHTML(text);
+    } else {
+        out.innerText = text;
+    }
+
     // Auto scroll
     out.scrollTop = out.scrollHeight;
+}
+
+// Advanced Parser: Converts C++ CLI tabular output into sleek HTML tables
+function parseTextToHTML(rawText) {
+    const lines = rawText.split('\n');
+    let html = '';
+    let inTable = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        // Match table headers (Rank IP TotalBytes...)
+        if (line.match(/^Rank\s+IP\s+TotalBytes/i) || line.match(/^排名\s*IP地址\s*总流量/)) {
+            if (!inTable) {
+                html += '<div class="table-container fade-up"><table class="data-table">';
+                inTable = true;
+            }
+            // It's a header row
+            if (line.startsWith('Rank')) {
+                html += '<thead><tr><th>Rank</th><th>IP Address</th><th>Total Bytes</th><th>Out Bytes</th><th>In Bytes</th><th>Out Ratio</th></tr></thead><tbody>';
+                // Skip the Chinese header and the dashed line
+                i += 2;
+            }
+            continue;
+        }
+
+        // Match table data rows (e.g., 1 115.156.142.194 12345 1000 11345 0.08)
+        const rowMatch = line.match(/^(\d+)\s+([\d\.]+)\s+(\d+)\s+(\d+)\s+(\d+)\s+([\d\.]+)/);
+        if (inTable && rowMatch) {
+            html += `<tr>
+                <td>${rowMatch[1]}</td>
+                <td class="ip-cell">${rowMatch[2]}</td>
+                <td>${parseInt(rowMatch[3]).toLocaleString()}</td>
+                <td>${parseInt(rowMatch[4]).toLocaleString()}</td>
+                <td>${parseInt(rowMatch[5]).toLocaleString()}</td>
+                <td><span class="ratio-badge ratio-${getRatioClass(parseFloat(rowMatch[6]))}">${rowMatch[6]}</span></td>
+            </tr>`;
+            continue;
+        }
+
+        // End of table detection
+        if (inTable && line === '') {
+            html += '</tbody></table></div>';
+            inTable = false;
+            continue;
+        }
+
+        // Highlight Headers (=== Title ===)
+        const titleMatch = line.match(/^===(.+)===$/);
+        if (titleMatch && !inTable) {
+            html += `<h4 class="console-title">${titleMatch[1].trim()}</h4>`;
+            continue;
+        }
+
+        // Normal text
+        if (!inTable && line !== '') {
+            // escape html
+            const safeLine = line.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+            // Colorize specific words
+            const colorized = safeLine
+                .replace(/(\[ERROR.*?\])/g, '<span class="text-red">$1</span>')
+                .replace(/(\[WARN.*?\])/g, '<span class="text-yellow">$1</span>')
+                .replace(/(Loaded \d+ sessions)/g, '<span class="text-green">$1</span>')
+                .replace(/(\[安全预警\].*?:)/g, '<span class="text-red font-bold pulse-text">🚨 $1</span>')
+                .replace(/(\[带宽枢纽\].*?:)/g, '<span class="text-blue font-bold">📊 $1</span>');
+
+            html += `<div class="console-line">${colorized}</div>`;
+        }
+    }
+
+    if (inTable) html += '</tbody></table></div>';
+
+    return html;
+}
+
+function getRatioClass(ratio) {
+    if (ratio > 0.8) return 'high';
+    if (ratio > 0.4) return 'med';
+    return 'low';
 }
 
 // Format command array to pretty string for logger
