@@ -21,8 +21,8 @@ def convert_pcap(pcap_file, csv_file):
     
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
-        # Header defined by the C++ analyzer
-        writer.writerow(['source', 'destination', 'protocol', 'src_port', 'dst_port', 'duration', 'data_size'])
+        # Header defined by the C++ analyzer: duration is 7th, data_size is 6th
+        writer.writerow(['source', 'destination', 'protocol', 'src_port', 'dst_port', 'data_size', 'duration'])
         
         valid_records = 0
         for pkt in packets:
@@ -42,10 +42,10 @@ def convert_pcap(pcap_file, csv_file):
                 elif UDP in pkt:
                     src_port = pkt[UDP].sport
                     dst_port = pkt[UDP].dport
-                elif ICMP in pkt:
+                if ICMP in pkt:
                     pass # ICMP has no ports
                 
-                writer.writerow([src_ip, dst_ip, protocol, src_port, dst_port, duration, data_size])
+                writer.writerow([src_ip, dst_ip, protocol, src_port, dst_port, data_size, duration])
                 valid_records += 1
                 
     print(f"[*] Success! Converted {valid_records} IP packets into session CSV format.")

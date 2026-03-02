@@ -9,7 +9,7 @@ def fast_convert(pcap_path, csv_path):
         sys.exit(1)
         
     with open(csv_path, 'w', newline='', encoding='utf-8') as f:
-        f.write("source,destination,protocol,src_port,dst_port,duration,data_size\n")
+        f.write("source,destination,protocol,src_port,dst_port,data_size,duration\n")
         writer = csv.writer(f)
         
         try:
@@ -39,21 +39,41 @@ def fast_convert(pcap_path, csv_path):
                             dst_port = (udp_header[2] << 8) | udp_header[3]
                             
                         # 由于抓包文件不带持续时间聚合，默认 0.001 秒短连接
-                        writer.writerow([src_ip, dst_ip, protocol, src_port, dst_port, 0.001, data_size])
+                        # 注：C++端要求第5列是 data_size, 第6列是 duration
+                        writer.writerow([src_ip, dst_ip, protocol, src_port, dst_port, data_size, 0.001])
         except Exception as e:
             # EOFError 等可忽略，因为 tcpdump 还在持续写入
             pass
 
 def main():
     if len(sys.argv) < 2:
-        print("用法 (Usage): python py/realtime_dashboard.py <pcap_file>")
+        print("用法 (Usage): python py/realtime_dashboard.py <pcap_file_or_interface>")
         sys.exit(1)
     
-    pcap_file = sys.argv[1]
+    target = sys.argv[1]
     csv_file = "data/live_data.csv"
     interval = 5   # 每 5 秒刷新一次仪表盘
     last_size = 0
+    pcap_file = target
     
+    tcpdump_proc = None
+    
+    # 自动识别：如果是网卡接口名（如 en0），则自动在后台拉起 tcpdump
+    if not target.endswith('.pcap') and not os.path.exists(target):
+        pcap_file = "data/auto_capture.pcap"
+        print(f"[*] 检测到接口名称 '{target}'，正在自动拉起后台 tcpdump 进行全自动抓包...")
+        try:
+            # 拉起 tcpdump 守护进程
+            tcpdump_proc = subprocess.Popen(
+                ["sudo", "tcpdump", "-i", target, "-n", "-w", pcap_file],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+            )
+            print(f"[*] 后台 tcpdump 启动成功 (PID: {tcpdump_proc.pid})，数据流入 -> {pcap_file}")
+            time.sleep(2) # 给守护进程一点时间写入文件头
+        except Exception as e:
+            print(f"[!] 自动启动 tcpdump 失败: {e}\n请确保你拥有 sudo 权限或手动指定一个已有的 pcap 文件。")
+            sys.exit(1)
+            
     # 确保 C++ 核心已经编译
     if not os.path.exists("./app"):
         print("[-] C++ 后端未编译，正在自动编译中...")
@@ -100,6 +120,9 @@ def main():
             
         except KeyboardInterrupt:
             print("\n\n[!] 已优雅退出实时监控模式。")
+            if tcpdump_proc:
+                print("[*] 正在安全清理后台 tcpdump 守护进程...")
+                tcpdump_proc.terminate()
             break
 
 if __name__ == '__main__':
