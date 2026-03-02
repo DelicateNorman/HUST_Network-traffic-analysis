@@ -107,3 +107,52 @@ async function runVisualization(ip) {
         hideLoader();
     }
 }
+
+// Live Dashboard Logic
+let liveInterval = null;
+
+async function pollLiveStats(pcapFile) {
+    try {
+        const response = await fetch(`${API_BASE}/api/live`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pcap_file: pcapFile })
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+            updateConsole(`[LIVE UPDATE / 实时刷新]\n${data.output}`);
+        } else {
+            updateConsole(`[LIVE ERROR]\n${data.detail}`);
+            toggleLiveDashboard(); // Stop on error
+        }
+    } catch (e) {
+        updateConsole(`[LIVE NETWORK ERROR]\n${e.message}`);
+        toggleLiveDashboard(); // Stop on error
+    }
+}
+
+function toggleLiveDashboard() {
+    const btnText = document.getElementById('live-btn-text');
+    const pcapFile = document.getElementById('live-pcap').value;
+
+    if (liveInterval) {
+        // Stop live
+        clearInterval(liveInterval);
+        liveInterval = null;
+        btnText.innerHTML = 'Start Live <span>开启监控</span>';
+        updateConsole("Live Dashboard stopped. / 实时监控已停止。");
+    } else {
+        // Start live
+        updateConsole(`Starting Live Dashboard for ${pcapFile}... / 正在启动 ${pcapFile} 的实时监控...`);
+        btnText.innerHTML = '<i class="fa-solid fa-stop"></i> Stop Live <span>停止监控</span>';
+
+        // Initial poll
+        pollLiveStats(pcapFile);
+
+        // Poll every 5 seconds
+        liveInterval = setInterval(() => {
+            pollLiveStats(pcapFile);
+        }, 5000);
+    }
+}
