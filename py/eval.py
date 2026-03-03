@@ -281,22 +281,32 @@ def print_menu(csv_path: str):
     print(f"{BOLD}{B}  Network Traffic Analyzer — Evaluation Script{RESET}")
     print(f"{B}  数据源: {csv_path}{RESET}")
     print(f"{BOLD}{B}{'═'*64}{RESET}")
-    print(f"""
-  {Y}1{RESET}. 📂 数据读取 & 图全局统计
-  {Y}2{RESET}. 📊 全局流量排序 (sort)
-  {Y}3{RESET}. 🔒 HTTPS 流量排序 (sort-https)
-  {Y}4{RESET}. 🚨 单向异常筛查 (sort-oneway)
-  {Y}5{RESET}. 🗺️  最短路径 BFS (path --metric hop)
-  {Y}6{RESET}. ⚡ 最低拥塞路径 Dijkstra (path --metric congestion)
-  {Y}7{RESET}. 🔀 双路径对比 (path --metric both)
-  {Y}8{RESET}. ⭐ 星型拓扑检测 (stars)
-  {Y}9{RESET}. 🛡️  IP段安全规则 (rule iprange)
-  {Y}10{RESET}. 📤 子图导出 (export)
-  {BOLD}{M}11{RESET}. 🚀 全项目性能基准测试 (Benchmark All)
-
-  {DIM}c{RESET}  — 查看验收检查表
-  {DIM}q{RESET}  — 退出
-""")
+    
+    menu_items = [
+        (1,  "📂", "数据读取 & 图全局统计"),
+        (2,  "📊", "全局流量排序 (sort)"),
+        (3,  "🔒", "HTTPS 流量排序 (sort-https)"),
+        (4,  "🚨", "单向异常筛查 (sort-oneway)"),
+        (5,  "🗺️ ", "最短路径 BFS (path --metric hop)"),
+        (6,  "⚡", "最低拥塞路径 Dijkstra (path --metric congestion)"),
+        (7,  "🔀", "双路径对比 (path --metric both)"),
+        (8,  "⭐", "星型拓扑检测 (stars)"),
+        (9,  "🛡️ ", "IP段安全规则 (rule iprange)"),
+        (10, "📤", "子图导出 (export)"),
+        (11, "🚀", "全项目性能基准测试 (Benchmark All)"),
+    ]
+    
+    print()
+    for num, icon, title in menu_items:
+        print(f"  {Y}{num:>2}.{RESET} {icon} {BOLD}{title}{RESET}")
+        if num in TESTS and num != 11:
+            for c in TESTS[num]["cases"]:
+                cmd_preview = " ".join(["./app"] + c["args"])
+                print(f"       {DIM}  [{c['label']}] {cmd_preview}{RESET}")
+        print()
+    
+    print(f"  {DIM}c{RESET}  — 查看验收检查表")
+    print(f"  {DIM}q{RESET}  — 退出\n")
 
 def main():
     # 解析命令行参数
