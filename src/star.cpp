@@ -37,23 +37,22 @@ std::vector<StarTopology> detect_stars(const Graph &g, int min_leaves) {
   std::vector<StarTopology> results;
   for (int c = 0; c < N; c++) {
     const auto &neighbors = undirected[c];
-    if ((int)neighbors.size() < min_leaves)
-      continue;
 
-    // Check all neighbors are leaves (only connected to c)
-    bool is_star = true;
+    // Collect ONLY the pure-leaf neighbors: those whose only connection is to c
+    std::vector<int> leaves;
     for (int leaf : neighbors) {
-      if (undirected[leaf].size() != 1) {
-        is_star = false;
-        break;
+      if ((int)undirected[leaf].size() == 1) {
+        // This neighbor connects ONLY to c — it is a true leaf
+        leaves.push_back(leaf);
       }
     }
-    if (!is_star)
+
+    if ((int)leaves.size() < min_leaves)
       continue;
 
     StarTopology st;
     st.center = g.id_to_ip[c];
-    for (int leaf : neighbors)
+    for (int leaf : leaves)
       st.leaves.push_back(g.id_to_ip[leaf]);
     std::sort(st.leaves.begin(), st.leaves.end());
     results.push_back(st);
